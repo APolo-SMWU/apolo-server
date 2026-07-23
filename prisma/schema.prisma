@@ -12,11 +12,62 @@ datasource db {
   provider = "postgresql"
 }
 
+enum ChangeType {
+  INITIAL_GENERATION
+  AI_EDIT
+  MANUAL_EDIT
+}
 model User {
-  id        Int       @id @default(autoincrement())
-  email     String    @unique
-  nickname  String
-  password  String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id         Int       @id @default(autoincrement())
+  email      String    @unique
+  nickname   String    @unique
+  password   String
+  portfolios Portfolio[]
+  comments   Comment[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model Portfolio {
+  id                 Int                @id @default(autoincrement())
+  userId              Int
+  title              String
+  jobRole            String
+  careerLevel        String
+  directionPrompt    String
+  externalLinks      Json
+  currentContentJson Json
+  isPublic           Boolean            @default(false)
+  isShared           Boolean            @default(false)
+  shareToken         String?            @unique
+  sharedAt           DateTime?
+  user               User               @relation(fields: [userId], references: [id])
+  versions           PortfolioVersion[]
+  comments           Comment[]
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+}
+
+model PortfolioVersion {
+  id            Int         @id @default(autoincrement())
+  portfolioId   Int
+  versionNumber Int
+  contentJson   Json
+  changeType    ChangeType
+  changePrompt  String?
+  portfolio     Portfolio   @relation(fields: [portfolioId], references: [id])
+  createdAt     DateTime    @default(now())
+
+  @@unique([portfolioId, versionNumber])
+}
+
+model Comment {
+  id          Int        @id @default(autoincrement())
+  portfolioId Int
+  authorId    Int
+  content     String
+  portfolio   Portfolio  @relation(fields: [portfolioId], references: [id])
+  author      User       @relation(fields: [authorId], references: [id])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 }
