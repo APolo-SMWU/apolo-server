@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: apolo-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: apolo_dev
+      POSTGRES_USER: apolo_user
+      POSTGRES_PASSWORD: apolo_local_pw
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
