@@ -1,6 +1,13 @@
 import { Router } from "express";
 import { authMiddleware } from "../middlewares/auth.middleware";
-import { createPortfolioController, getMyPortfoliosController, getPortfolioByIdController, updatePortfolioController, updatePortfolioVisibilityController } from "../controllers/portfolios.controller";
+import { createPortfolioController,
+        getMyPortfoliosController,
+        getPortfolioByIdController, 
+        updatePortfolioController, 
+        updatePortfolioVisibilityController,
+        generatePortfolioController,
+        editPortfolioWithAiController
+} from "../controllers/portfolios.controller";
 
 const router = Router();
 
@@ -13,5 +20,7 @@ router.patch(
   authMiddleware,
   updatePortfolioVisibilityController
 );
+router.post("/:portfolioId/generate", authMiddleware, generatePortfolioController);
+router.post("/:portfolioId/ai-edit", authMiddleware, editPortfolioWithAiController);
 
 export default router;

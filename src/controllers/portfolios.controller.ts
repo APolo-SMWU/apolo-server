@@ -1,6 +1,7 @@
 import { Response } from "express";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import { createPortfolio, getMyPortfolios, getPortfolioById, updatePortfolio, updatePortfolioVisibility} from "../services/portfolios.service";
+import { generatePortfolioWithMock, editPortfolioWithMock } from "../services/ai.service";
 
 export const createPortfolioController = async (
   req: AuthRequest,
@@ -141,6 +142,49 @@ export const updatePortfolioVisibilityController = async (
 
   res.status(200).json({
     message: "포트폴리오 공개 여부 수정 성공",
+    portfolio,
+  });
+};
+
+export const generatePortfolioController = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  const userId = req.user?.userId;
+  const portfolioId = Number(req.params.portfolioId);
+
+  if (!userId) {
+    return res.status(401).json({
+      message: "인증된 사용자 정보가 없습니다.",
+    });
+  }
+
+  const portfolio = await generatePortfolioWithMock(userId, portfolioId);
+
+  res.status(200).json({
+    message: "AI 초안 생성 성공",
+    portfolio,
+  });
+};
+
+export const editPortfolioWithAiController = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  const userId = req.user?.userId;
+  const portfolioId = Number(req.params.portfolioId);
+  const { prompt } = req.body;
+
+  if (!userId) {
+    return res.status(401).json({
+      message: "인증된 사용자 정보가 없습니다.",
+    });
+  }
+
+  const portfolio = await editPortfolioWithMock(userId, portfolioId, prompt);
+
+  res.status(200).json({
+    message: "AI 수정 반영 성공",
     portfolio,
   });
 };
