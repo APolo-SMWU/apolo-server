@@ -1,5 +1,28 @@
+import type { Prisma } from "../generated/prisma/client";
 import prisma from "../lib/prisma";
 
+// 포트폴리오 스냅샷 생성
+const buildPortfolioSnapshot = (portfolio: {
+  title: string;
+  jobRole: string;
+  careerLevel: string;
+  directionPrompt: string;
+  externalLinks: Prisma.JsonValue;
+  currentContentJson: Prisma.JsonValue;
+  isPublic: boolean;
+}): Prisma.JsonObject => {
+  return {
+    title: portfolio.title,
+    jobRole: portfolio.jobRole,
+    careerLevel: portfolio.careerLevel,
+    directionPrompt: portfolio.directionPrompt,
+    externalLinks: portfolio.externalLinks,
+    currentContentJson: portfolio.currentContentJson,
+    isPublic: portfolio.isPublic,
+  };
+};
+
+// 포트폴리오 생성
 export const createPortfolio = async (
   userId: number,
   title: string,
@@ -9,21 +32,36 @@ export const createPortfolio = async (
   externalLinks: { label: string; url: string }[],
   currentContentJson: object
 ) => {
-  const portfolio = await prisma.portfolio.create({
-    data: {
-      userId,
-      title,
-      jobRole,
-      careerLevel,
-      directionPrompt,
-      externalLinks,
-      currentContentJson,
-    },
+  const result = await prisma.$transaction(async (tx) => {
+    const portfolio = await tx.portfolio.create({
+      data: {
+        userId,
+        title,
+        jobRole,
+        careerLevel,
+        directionPrompt,
+        externalLinks,
+        currentContentJson,
+      },
+    });
+
+    await tx.portfolioVersion.create({
+      data: {
+        portfolioId: portfolio.id,
+        versionNumber: 1,
+        contentJson: buildPortfolioSnapshot(portfolio),
+        changeType: "INITIAL_GENERATION",
+        changePrompt: null,
+      },
+    });
+
+    return portfolio;
   });
 
-  return portfolio;
+  return result;
 };
 
+// 내 포트폴리오 조회
 export const getMyPortfolios = async (userId: number) => {
   const portfolios = await prisma.portfolio.findMany({
     where: { userId },
@@ -35,6 +73,7 @@ export const getMyPortfolios = async (userId: number) => {
   return portfolios;
 };
 
+// 포트폴리오 상세 조회
 export const getPortfolioById = async (
   userId: number,
   portfolioId: number
@@ -89,21 +128,38 @@ export const updatePortfolio = async (
   if (careerLevel !== undefined) data.careerLevel = careerLevel;
   if (directionPrompt !== undefined) data.directionPrompt = directionPrompt;
   if (externalLinks !== undefined) data.externalLinks = externalLinks;
-  if (currentContentJson !== undefined) {
-    data.currentContentJson = currentContentJson;
-  }
+  if (currentContentJson !== undefined) data.currentContentJson = currentContentJson;
 
-  const updatedPortfolio = await prisma.portfolio.update({
-    where: {
-      id: portfolioId,
-    },
-    data,
+  const result = await prisma.$transaction(async (tx) => {
+    const updatedPortfolio = await tx.portfolio.update({
+      where: { id: portfolioId },
+      data,
+    });
+
+    const latestVersion = await tx.portfolioVersion.findFirst({
+      where: { portfolioId },
+      orderBy: { versionNumber: "desc" },
+    });
+
+    const nextVersionNumber = latestVersion ? latestVersion.versionNumber + 1 : 1;
+
+    await tx.portfolioVersion.create({
+      data: {
+        portfolioId: updatedPortfolio.id,
+        versionNumber: nextVersionNumber,
+        contentJson: buildPortfolioSnapshot(updatedPortfolio),
+        changeType: "MANUAL_EDIT",
+        changePrompt: null,
+      },
+    });
+
+    return updatedPortfolio;
   });
 
-  return updatedPortfolio;
+  return result;
 };
 
-//포트폴리오 공개여부 수정
+//포트폴리오 공개 여부 수정
 export const updatePortfolioVisibility = async (
   userId: number,
   portfolioId: number,
