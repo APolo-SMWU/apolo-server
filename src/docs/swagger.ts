@@ -14,8 +14,11 @@ const swaggerSpec = {
   tags: [
     { name: "Auth", description: "인증 API" },
     { name: "Portfolio", description: "포트폴리오 API" },
+    { name: "Version", description: "포트폴리오 버전 API" },
     { name: "Archive", description: "공개 아카이브 API" },
+    { name: "Shared", description: "공유 포트폴리오 API" },
     { name: "Comment", description: "댓글 API" },
+    { name: "User", description: "사용자 API" },
   ],
   components: {
     securitySchemes: {
@@ -26,6 +29,39 @@ const swaggerSpec = {
       },
     },
     schemas: {
+      ErrorResponse: {
+        type: "object",
+        properties: {
+          message: {
+            type: "string",
+            example: "잘못된 요청입니다.",
+          },
+          errors: {
+            type: "array",
+            nullable: true,
+            items: {
+              type: "object",
+              properties: {
+                field: { type: "string", example: "email" },
+                message: {
+                  type: "string",
+                  example: "올바른 이메일 형식이 아닙니다.",
+                },
+              },
+            },
+          },
+        },
+      },
+
+      User: {
+        type: "object",
+        properties: {
+          id: { type: "integer", example: 1 },
+          email: { type: "string", example: "test@example.com" },
+          nickname: { type: "string", example: "testuser" },
+        },
+      },
+
       SignupRequest: {
         type: "object",
         required: ["email", "nickname", "password", "passwordCheck"],
@@ -36,6 +72,7 @@ const swaggerSpec = {
           passwordCheck: { type: "string", example: "password123" },
         },
       },
+
       LoginRequest: {
         type: "object",
         required: ["email", "password"],
@@ -44,24 +81,23 @@ const swaggerSpec = {
           password: { type: "string", example: "password123" },
         },
       },
-      CommentRequest: {
-        type: "object",
-        required: ["content"],
-        properties: {
-          content: {
-            type: "string",
-            example: "포트폴리오가 깔끔해서 보기 좋아요.",
-          },
-        },
-      },
-      MeResponse: {
+
+      LoginResponse: {
         type: "object",
         properties: {
-          id: { type: "integer", example: 1 },
-          email: { type: "string", example: "test@example.com" },
-          nickname: { type: "string", example: "testuser" },
+          message: { type: "string", example: "로그인에 성공했습니다." },
+          accessToken: { type: "string", example: "jwt-token-example" },
         },
       },
+
+      ExternalLink: {
+        type: "object",
+        properties: {
+          label: { type: "string", example: "GitHub" },
+          url: { type: "string", example: "https://github.com/test" },
+        },
+      },
+
       Portfolio: {
         type: "object",
         properties: {
@@ -77,11 +113,7 @@ const swaggerSpec = {
           externalLinks: {
             type: "array",
             items: {
-              type: "object",
-              properties: {
-                label: { type: "string", example: "GitHub" },
-                url: { type: "string", example: "https://github.com/..." },
-              },
+              $ref: "#/components/schemas/ExternalLink",
             },
           },
           currentContentJson: {
@@ -92,7 +124,11 @@ const swaggerSpec = {
           },
           isPublic: { type: "boolean", example: true },
           isShared: { type: "boolean", example: false },
-          shareToken: { type: "string", nullable: true, example: null },
+          shareToken: {
+            type: "string",
+            nullable: true,
+            example: null,
+          },
           sharedAt: {
             type: "string",
             format: "date-time",
@@ -107,10 +143,11 @@ const swaggerSpec = {
           updatedAt: {
             type: "string",
             format: "date-time",
-            example: "2026-07-28T07:53:12.485Z",
+            example: "2026-07-31T07:24:21.385Z",
           },
         },
       },
+
       CreatePortfolioRequest: {
         type: "object",
         required: [
@@ -132,11 +169,7 @@ const swaggerSpec = {
           externalLinks: {
             type: "array",
             items: {
-              type: "object",
-              properties: {
-                label: { type: "string", example: "GitHub" },
-                url: { type: "string", example: "https://github.com/..." },
-              },
+              $ref: "#/components/schemas/ExternalLink",
             },
           },
           currentContentJson: {
@@ -147,6 +180,7 @@ const swaggerSpec = {
           },
         },
       },
+
       UpdatePortfolioRequest: {
         type: "object",
         properties: {
@@ -160,11 +194,7 @@ const swaggerSpec = {
           externalLinks: {
             type: "array",
             items: {
-              type: "object",
-              properties: {
-                label: { type: "string", example: "GitHub" },
-                url: { type: "string", example: "https://github.com/..." },
-              },
+              $ref: "#/components/schemas/ExternalLink",
             },
           },
           currentContentJson: {
@@ -175,6 +205,7 @@ const swaggerSpec = {
           },
         },
       },
+
       UpdateVisibilityRequest: {
         type: "object",
         required: ["isPublic"],
@@ -182,6 +213,15 @@ const swaggerSpec = {
           isPublic: { type: "boolean", example: true },
         },
       },
+
+      UpdateShareRequest: {
+        type: "object",
+        required: ["isShared"],
+        properties: {
+          isShared: { type: "boolean", example: true },
+        },
+      },
+
       AiEditRequest: {
         type: "object",
         required: ["prompt"],
@@ -192,26 +232,89 @@ const swaggerSpec = {
           },
         },
       },
-      Comment: {
+
+      PortfolioVersion: {
         type: "object",
         properties: {
-          id: { type: "integer", example: 1 },
-          portfolioId: { type: "integer", example: 1 },
-          authorId: { type: "integer", example: 1 },
-          content: {
+          id: { type: "integer", example: 3 },
+          portfolioId: { type: "integer", example: 2 },
+          versionNumber: { type: "integer", example: 2 },
+          contentJson: {
+            type: "object",
+            example: {
+              title: "두 번째 포트폴리오",
+              currentContentJson: {
+                blocks: [{ type: "hero", text: "initial version" }],
+                aiEditPrompt: "프로젝트 섹션을 위로 올리고 전체 톤을 더 차분하게 바꿔줘.",
+              },
+            },
+          },
+          changeType: {
             type: "string",
-            example: "포트폴리오가 깔끔해서 보기 좋아요.",
+            example: "AI_EDIT",
+          },
+          changePrompt: {
+            type: "string",
+            nullable: true,
+            example: "프로젝트 섹션을 위로 올리고 전체 톤을 더 차분하게 바꿔줘.",
           },
           createdAt: {
             type: "string",
             format: "date-time",
-            example: "2026-07-31T06:33:11.508Z",
+            example: "2026-07-28T08:04:50.812Z",
+          },
+        },
+      },
+
+      CommentRequest: {
+        type: "object",
+        required: ["content"],
+        properties: {
+          content: {
+            type: "string",
+            example: "포트폴리오가 깔끔해서 보기 좋아요.",
+          },
+        },
+      },
+
+      Comment: {
+        type: "object",
+        properties: {
+          id: { type: "integer", example: 2 },
+          portfolioId: { type: "integer", example: 1 },
+          authorId: { type: "integer", example: 1 },
+          content: {
+            type: "string",
+            example: "수정된 댓글입니다.",
+          },
+          createdAt: {
+            type: "string",
+            format: "date-time",
+            example: "2026-07-31T06:33:27.525Z",
           },
           updatedAt: {
             type: "string",
             format: "date-time",
-            example: "2026-07-31T06:33:11.508Z",
+            example: "2026-07-31T07:28:35.575Z",
           },
+        },
+      },
+
+      UpdateProfileRequest: {
+        type: "object",
+        required: ["nickname"],
+        properties: {
+          nickname: { type: "string", example: "newNickname" },
+        },
+      },
+
+      UpdatePasswordRequest: {
+        type: "object",
+        required: ["currentPassword", "newPassword", "newPasswordCheck"],
+        properties: {
+          currentPassword: { type: "string", example: "password123" },
+          newPassword: { type: "string", example: "newpassword123" },
+          newPasswordCheck: { type: "string", example: "newpassword123" },
         },
       },
     },
@@ -235,9 +338,13 @@ const swaggerSpec = {
           "201": {
             description: "회원가입 성공",
           },
+          "400": {
+            description: "잘못된 요청",
+          },
         },
       },
     },
+
     "/auth/login": {
       post: {
         tags: ["Auth"],
@@ -256,9 +363,13 @@ const swaggerSpec = {
           "200": {
             description: "로그인 성공",
           },
+          "400": {
+            description: "잘못된 요청",
+          },
         },
       },
     },
+
     "/auth/me": {
       get: {
         tags: ["Auth"],
@@ -268,9 +379,59 @@ const swaggerSpec = {
           "200": {
             description: "내 정보 조회 성공",
           },
+          "401": {
+            description: "인증 실패",
+          },
         },
       },
     },
+
+    "/users/me": {
+      patch: {
+        tags: ["User"],
+        summary: "내 프로필 수정",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/UpdateProfileRequest",
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "내 프로필 수정 성공",
+          },
+        },
+      },
+    },
+
+    "/users/me/password": {
+      patch: {
+        tags: ["User"],
+        summary: "내 비밀번호 변경",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/UpdatePasswordRequest",
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "비밀번호 변경 성공",
+          },
+        },
+      },
+    },
+
     "/portfolios": {
       get: {
         tags: ["Portfolio"],
@@ -303,6 +464,7 @@ const swaggerSpec = {
         },
       },
     },
+
     "/portfolios/{portfolioId}": {
       get: {
         tags: ["Portfolio"],
@@ -351,6 +513,7 @@ const swaggerSpec = {
         },
       },
     },
+
     "/portfolios/{portfolioId}/visibility": {
       patch: {
         tags: ["Portfolio"],
@@ -381,6 +544,38 @@ const swaggerSpec = {
         },
       },
     },
+
+    "/portfolios/{portfolioId}/share": {
+      patch: {
+        tags: ["Portfolio"],
+        summary: "포트폴리오 공유 여부 수정",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "portfolioId",
+            in: "path",
+            required: true,
+            schema: { type: "integer", example: 1 },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/UpdateShareRequest",
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "포트폴리오 공유 여부 수정 성공",
+          },
+        },
+      },
+    },
+
     "/portfolios/{portfolioId}/generate": {
       post: {
         tags: ["Portfolio"],
@@ -401,6 +596,7 @@ const swaggerSpec = {
         },
       },
     },
+
     "/portfolios/{portfolioId}/ai-edit": {
       post: {
         tags: ["Portfolio"],
@@ -431,6 +627,55 @@ const swaggerSpec = {
         },
       },
     },
+
+    "/portfolios/{portfolioId}/versions": {
+      get: {
+        tags: ["Version"],
+        summary: "포트폴리오 버전 목록 조회",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "portfolioId",
+            in: "path",
+            required: true,
+            schema: { type: "integer", example: 2 },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "포트폴리오 버전 목록 조회 성공",
+          },
+        },
+      },
+    },
+
+    "/portfolios/{portfolioId}/versions/{versionId}": {
+      get: {
+        tags: ["Version"],
+        summary: "포트폴리오 버전 상세 조회",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "portfolioId",
+            in: "path",
+            required: true,
+            schema: { type: "integer", example: 2 },
+          },
+          {
+            name: "versionId",
+            in: "path",
+            required: true,
+            schema: { type: "integer", example: 3 },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "포트폴리오 버전 상세 조회 성공",
+          },
+        },
+      },
+    },
+
     "/archive/portfolios": {
       get: {
         tags: ["Archive"],
@@ -442,6 +687,7 @@ const swaggerSpec = {
         },
       },
     },
+
     "/archive/portfolios/{portfolioId}": {
       get: {
         tags: ["Archive"],
@@ -461,6 +707,30 @@ const swaggerSpec = {
         },
       },
     },
+
+    "/shared/portfolios/{shareToken}": {
+      get: {
+        tags: ["Shared"],
+        summary: "공유 포트폴리오 조회",
+        parameters: [
+          {
+            name: "shareToken",
+            in: "path",
+            required: true,
+            schema: {
+              type: "string",
+              example: "cace5987-f901-4840-bc49-f6c897e1e446",
+            },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "공유 포트폴리오 조회 성공",
+          },
+        },
+      },
+    },
+
     "/portfolios/{portfolioId}/comments": {
       get: {
         tags: ["Comment"],
@@ -508,7 +778,36 @@ const swaggerSpec = {
         },
       },
     },
+
     "/comments/{commentId}": {
+      patch: {
+        tags: ["Comment"],
+        summary: "댓글 수정",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "commentId",
+            in: "path",
+            required: true,
+            schema: { type: "integer", example: 2 },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/CommentRequest",
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "댓글 수정 성공",
+          },
+        },
+      },
       delete: {
         tags: ["Comment"],
         summary: "댓글 삭제",
@@ -518,7 +817,7 @@ const swaggerSpec = {
             name: "commentId",
             in: "path",
             required: true,
-            schema: { type: "integer", example: 1 },
+            schema: { type: "integer", example: 2 },
           },
         ],
         responses: {
