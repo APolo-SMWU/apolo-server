@@ -1,9 +1,14 @@
 import { Request, Response } from "express";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import { getMe, login, signup } from "../services/auth.service";
+import { validateRequest } from "../utils/validate-request";
+import { loginSchema, signupSchema } from "../schemas/auth.schema";
 
 export const signupUser = async (req: Request, res: Response) => {
-  const { email, nickname, password, passwordCheck } = req.body;
+  const { email, nickname, password, passwordCheck } = validateRequest(
+    signupSchema,
+    req.body
+  );
 
   const user = await signup(email, nickname, password, passwordCheck);
 
@@ -14,7 +19,7 @@ export const signupUser = async (req: Request, res: Response) => {
 };
 
 export const loginUser = async (req: Request, res: Response) => {
-  const { email, password } = req.body;
+  const { email, password } = validateRequest(loginSchema, req.body);
 
   const result = await login(email, password);
 

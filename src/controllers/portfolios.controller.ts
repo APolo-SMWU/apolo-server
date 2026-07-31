@@ -6,6 +6,10 @@ import {
   createComment,
   getCommentsByPortfolioId,
 } from "../services/comments.service";
+import { validateRequest } from "../utils/validate-request";
+import { createCommentSchema } from "../schemas/comment.schema";
+import { aiEditSchema } from "../schemas/ai.schema";
+import { portfolioIdParamSchema } from "../schemas/common.schema";
 
 export const createPortfolioController = async (
   req: AuthRequest,
@@ -69,7 +73,7 @@ export const getPortfolioByIdController = async (
   res: Response
 ) => {
   const userId = req.user?.userId;
-  const portfolioId = Number(req.params.portfolioId);
+  const { portfolioId } = validateRequest(portfolioIdParamSchema, req.params);
 
   if (!userId) {
     return res.status(401).json({
@@ -90,7 +94,7 @@ export const updatePortfolioController = async (
   res: Response
 ) => {
   const userId = req.user?.userId;
-  const portfolioId = Number(req.params.portfolioId);
+  const { portfolioId } = validateRequest(portfolioIdParamSchema, req.params);
 
   if (!userId) {
     return res.status(401).json({
@@ -129,7 +133,7 @@ export const updatePortfolioVisibilityController = async (
   res: Response
 ) => {
   const userId = req.user?.userId;
-  const portfolioId = Number(req.params.portfolioId);
+  const { portfolioId } = validateRequest(portfolioIdParamSchema, req.params);
   const { isPublic } = req.body;
 
   if (!userId) {
@@ -155,7 +159,7 @@ export const generatePortfolioController = async (
   res: Response
 ) => {
   const userId = req.user?.userId;
-  const portfolioId = Number(req.params.portfolioId);
+  const { portfolioId } = validateRequest(portfolioIdParamSchema, req.params);
 
   if (!userId) {
     return res.status(401).json({
@@ -176,8 +180,8 @@ export const editPortfolioWithAiController = async (
   res: Response
 ) => {
   const userId = req.user?.userId;
-  const portfolioId = Number(req.params.portfolioId);
-  const { prompt } = req.body;
+  const { portfolioId } = validateRequest(portfolioIdParamSchema, req.params);
+  const { prompt } = validateRequest(aiEditSchema, req.body);
 
   if (!userId) {
     return res.status(401).json({
@@ -198,8 +202,8 @@ export const createCommentController = async (
   res: Response
 ) => {
   const userId = req.user?.userId;
-  const portfolioId = Number(req.params.portfolioId);
-  const { content } = req.body;
+  const { portfolioId } = validateRequest(portfolioIdParamSchema, req.params);
+  const { content } = validateRequest(createCommentSchema, req.body);
 
   if (!userId) {
     return res.status(401).json({
@@ -219,7 +223,7 @@ export const getCommentsByPortfolioController = async (
   req: AuthRequest,
   res: Response
 ) => {
-  const portfolioId = Number(req.params.portfolioId);
+  const { portfolioId } = validateRequest(portfolioIdParamSchema, req.params);
 
   const comments = await getCommentsByPortfolioId(portfolioId);
 

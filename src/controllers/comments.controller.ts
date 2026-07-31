@@ -1,13 +1,15 @@
 import { Response } from "express";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import { deleteComment } from "../services/comments.service";
+import { validateRequest } from "../utils/validate-request";
+import { commentIdParamSchema } from "../schemas/common.schema";
 
 export const deleteCommentController = async (
   req: AuthRequest,
   res: Response
 ) => {
   const userId = req.user?.userId;
-  const commentId = Number(req.params.commentId);
+  const { commentId } = validateRequest(commentIdParamSchema, req.params);
 
   if (!userId) {
     return res.status(401).json({

@@ -3,6 +3,8 @@ import {
   getPublicPortfolios,
   getPublicPortfolioById,
 } from "../services/archive.service";
+import { validateRequest } from "../utils/validate-request";
+import { portfolioIdParamSchema } from "../schemas/common.schema";
 
 export const getPublicPortfoliosController = async (
   req: Request,
@@ -20,7 +22,7 @@ export const getPublicPortfolioByIdController = async (
   req: Request,
   res: Response
 ) => {
-  const portfolioId = Number(req.params.portfolioId);
+  const { portfolioId } = validateRequest(portfolioIdParamSchema, req.params);
 
   const portfolio = await getPublicPortfolioById(portfolioId);
 
