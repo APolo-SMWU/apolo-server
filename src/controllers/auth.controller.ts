@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { AppError } from "../errors/app-error";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import { getMe, login, signup } from "../services/auth.service";
 import { validateRequest } from "../utils/validate-request";
@@ -33,9 +34,7 @@ export const getMyInfo = async (req: AuthRequest, res: Response) => {
   const userId = req.user?.userId;
 
   if (!userId) {
-    return res.status(401).json({
-      message: "인증된 사용자 정보가 없습니다.",
-    });
+    throw new AppError(401, "인증된 사용자 정보가 없습니다.", "UNAUTHORIZED");
   }
 
   const user = await getMe(userId);

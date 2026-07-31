@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
+import { AppError } from "../errors/app-error";
 
 interface JwtPayload {
   userId: number;
@@ -18,17 +19,13 @@ export const authMiddleware = (
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
-    return res.status(401).json({
-      message: "인증 토큰이 없습니다.",
-    });
+    return next(new AppError(401, "인증 토큰이 없습니다.", "UNAUTHORIZED"));
   }
 
   const [type, token] = authHeader.split(" ");
 
   if (type !== "Bearer" || !token) {
-    return res.status(401).json({
-      message: "올바른 토큰 형식이 아닙니다.",
-    });
+    return next(new AppError(401, "올바른 토큰 형식이 아닙니다.", "UNAUTHORIZED"));
   }
 
   try {
@@ -40,8 +37,6 @@ export const authMiddleware = (
     req.user = decoded;
     next();
   } catch (error) {
-    return res.status(401).json({
-      message: "유효하지 않은 토큰입니다.",
-    });
+    return next(new AppError(401, "유효하지 않은 토큰입니다.", "UNAUTHORIZED"));
   }
 };

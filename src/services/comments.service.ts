@@ -15,7 +15,7 @@ export const createComment = async (
   });
 
   if (!portfolio) {
-    throw new AppError(404, "공개 포트폴리오를 찾을 수 없습니다.");
+    throw new AppError(404, "공개 포트폴리오를 찾을 수 없습니다.", "NOT_FOUND");
   }
 
   const comment = await prisma.comment.create({
@@ -39,7 +39,7 @@ export const getCommentsByPortfolioId = async (portfolioId: number) => {
   });
 
   if (!portfolio) {
-    throw new AppError(404, "공개 포트폴리오를 찾을 수 없습니다.");
+    throw new AppError(404, "공개 포트폴리오를 찾을 수 없습니다.", "NOT_FOUND");
   }
 
   const comments = await prisma.comment.findMany({
@@ -63,11 +63,11 @@ export const deleteComment = async (userId: number, commentId: number) => {
   });
 
   if (!comment) {
-    throw new AppError(404, "댓글을 찾을 수 없습니다.");
+    throw new AppError(404, "댓글을 찾을 수 없습니다.", "NOT_FOUND");
   }
 
   if (comment.authorId !== userId) {
-    throw new AppError(403, "본인이 작성한 댓글만 삭제할 수 있습니다.");
+    throw new AppError(403, "본인이 작성한 댓글만 삭제할 수 있습니다.", "FORBIDDEN");
   }
 
   const deletedComment = await prisma.comment.delete({
@@ -91,11 +91,11 @@ export const updateComment = async (
   });
 
   if (!comment) {
-    throw new AppError(404, "댓글을 찾을 수 없습니다.");
+    throw new AppError(404, "댓글을 찾을 수 없습니다.", "NOT_FOUND");
   }
 
   if (comment.authorId !== userId) {
-    throw new AppError(403, "본인이 작성한 댓글만 수정할 수 있습니다.");
+    throw new AppError(403, "본인이 작성한 댓글만 수정할 수 있습니다.", "FORBIDDEN");
   }
 
   const updatedComment = await prisma.comment.update({

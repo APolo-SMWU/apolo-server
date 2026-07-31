@@ -10,7 +10,7 @@ export const getSharedPortfolioByToken = async (shareToken: string) => {
   });
 
   if (!portfolio) {
-    throw new AppError(404, "공유 포트폴리오를 찾을 수 없습니다.");
+    throw new AppError(404, "공유 포트폴리오를 찾을 수 없습니다.", "NOT_FOUND");
   }
 
   return portfolio;

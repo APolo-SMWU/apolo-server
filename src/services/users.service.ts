@@ -14,7 +14,7 @@ export const updateMyProfile = async (
   });
 
   if (!user) {
-    throw new AppError(404, "사용자를 찾을 수 없습니다.");
+    throw new AppError(404, "사용자를 찾을 수 없습니다.", "NOT_FOUND");
   }
 
   const existingUserByNickname = await prisma.user.findUnique({
@@ -24,7 +24,7 @@ export const updateMyProfile = async (
   });
 
   if (existingUserByNickname && existingUserByNickname.id !== userId) {
-    throw new AppError(400, "이미 사용 중인 닉네임입니다.");
+    throw new AppError(400, "이미 사용 중인 닉네임입니다.", "CONFLICT");
   }
 
   const updatedUser = await prisma.user.update({
@@ -57,17 +57,17 @@ export const updateMyPassword = async (
   });
 
   if (!user) {
-    throw new AppError(404, "사용자를 찾을 수 없습니다.");
+    throw new AppError(404, "사용자를 찾을 수 없습니다.", "NOT_FOUND");
   }
 
   const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
 
   if (!isPasswordValid) {
-    throw new AppError(401, "현재 비밀번호가 일치하지 않습니다.");
+    throw new AppError(401, "현재 비밀번호가 일치하지 않습니다.", "UNAUTHORIZED");
   }
 
   if (newPassword !== newPasswordCheck) {
-    throw new AppError(400, "새 비밀번호가 일치하지 않습니다.");
+    throw new AppError(400, "새 비밀번호가 일치하지 않습니다.", "BAD_REQUEST");
   }
 
   const hashedPassword = await bcrypt.hash(newPassword, 10);

@@ -88,7 +88,7 @@ export const getPortfolioById = async (
   });
 
   if (!portfolio) {
-    throw new AppError(404, "포트폴리오를 찾을 수 없습니다.");
+    throw new AppError(404, "포트폴리오를 찾을 수 없습니다.", "NOT_FOUND");
   }
 
   return portfolio;
@@ -113,7 +113,7 @@ export const updatePortfolio = async (
   });
 
   if (!existingPortfolio) {
-    throw new AppError(404, "수정할 포트폴리오를 찾을 수 없습니다.");
+    throw new AppError(404, "수정할 포트폴리오를 찾을 수 없습니다.", "NOT_FOUND");
   }
 
   const data: {
@@ -175,7 +175,7 @@ export const updatePortfolioVisibility = async (
   });
 
   if (!existingPortfolio) {
-    throw new AppError(404, "수정할 포트폴리오를 찾을 수 없습니다.");
+    throw new AppError(404, "수정할 포트폴리오를 찾을 수 없습니다.", "NOT_FOUND");
   }
 
   const updatedPortfolio = await prisma.portfolio.update({
@@ -203,7 +203,7 @@ export const updatePortfolioShare = async (
   });
 
   if (!existingPortfolio) {
-    throw new AppError(404, "수정할 포트폴리오를 찾을 수 없습니다.");
+    throw new AppError(404, "수정할 포트폴리오를 찾을 수 없습니다.", "NOT_FOUND");
   }
 
   const updatedPortfolio = await prisma.portfolio.update({

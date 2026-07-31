@@ -46,7 +46,7 @@ export const generatePortfolioWithMock = async (
   });
 
   if (!existingPortfolio) {
-    throw new AppError(404, "포트폴리오를 찾을 수 없습니다.");
+    throw new AppError(404, "포트폴리오를 찾을 수 없습니다.", "NOT_FOUND");
   }
 
   const existingInitialVersion = await prisma.portfolioVersion.findFirst({
@@ -57,7 +57,7 @@ export const generatePortfolioWithMock = async (
   });
 
   if (existingInitialVersion) {
-    throw new AppError(400, "이미 AI 초안이 생성된 포트폴리오입니다.");
+    throw new AppError(400, "이미 AI 초안이 생성된 포트폴리오입니다.", "CONFLICT");
   }
 
   const mockGeneratedContent = {
@@ -108,7 +108,7 @@ export const editPortfolioWithMock = async (
   });
 
   if (!existingPortfolio) {
-    throw new AppError(404, "포트폴리오를 찾을 수 없습니다.");
+    throw new AppError(404, "포트폴리오를 찾을 수 없습니다.", "NOT_FOUND");
   }
 
   const mockEditedContent = {

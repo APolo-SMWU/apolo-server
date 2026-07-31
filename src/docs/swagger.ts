@@ -36,9 +36,12 @@ const swaggerSpec = {
             type: "string",
             example: "잘못된 요청입니다.",
           },
+          code: {
+            type: "string",
+            example: "VALIDATION_ERROR",
+          },
           errors: {
             type: "array",
-            nullable: true,
             items: {
               type: "object",
               properties: {
@@ -49,6 +52,12 @@ const swaggerSpec = {
                 },
               },
             },
+            example: [
+              {
+                field: "email",
+                message: "올바른 이메일 형식이 아닙니다.",
+              },
+            ],
           },
         },
       },
@@ -318,6 +327,103 @@ const swaggerSpec = {
         },
       },
     },
+    responses: {
+      ValidationError: {
+        description: "잘못된 요청",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+            example: {
+              message: "잘못된 요청입니다.",
+              code: "VALIDATION_ERROR",
+              errors: [
+                {
+                  field: "email",
+                  message: "올바른 이메일 형식이 아닙니다.",
+                },
+              ],
+            },
+          },
+        },
+      },
+      UnauthorizedError: {
+        description: "인증 실패",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+            example: {
+              message: "유효하지 않은 토큰입니다.",
+              code: "UNAUTHORIZED",
+              errors: [],
+            },
+          },
+        },
+      },
+      ForbiddenError: {
+        description: "권한 없음",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+            example: {
+              message: "본인이 작성한 댓글만 수정할 수 있습니다.",
+              code: "FORBIDDEN",
+              errors: [],
+            },
+          },
+        },
+      },
+      NotFoundError: {
+        description: "리소스를 찾을 수 없음",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+            example: {
+              message: "포트폴리오를 찾을 수 없습니다.",
+              code: "NOT_FOUND",
+              errors: [],
+            },
+          },
+        },
+      },
+      ConflictError: {
+        description: "중복 또는 충돌",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+            example: {
+              message: "이미 사용 중인 이메일입니다.",
+              code: "CONFLICT",
+              errors: [],
+            },
+          },
+        },
+      },
+      InternalServerError: {
+        description: "서버 내부 오류",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+            example: {
+              message: "서버 내부 오류가 발생했습니다.",
+              code: "INTERNAL_SERVER_ERROR",
+              errors: [],
+            },
+          },
+        },
+      },
+    },
   },
   paths: {
     "/auth/signup": {
@@ -339,7 +445,13 @@ const swaggerSpec = {
             description: "회원가입 성공",
           },
           "400": {
-            description: "잘못된 요청",
+            $ref: "#/components/responses/ValidationError",
+          },
+          "409": {
+            $ref: "#/components/responses/ConflictError",
+          },
+          "500": {
+            $ref: "#/components/responses/InternalServerError",
           },
         },
       },
@@ -364,7 +476,13 @@ const swaggerSpec = {
             description: "로그인 성공",
           },
           "400": {
-            description: "잘못된 요청",
+            $ref: "#/components/responses/ValidationError",
+          },
+          "401": {
+            $ref: "#/components/responses/UnauthorizedError",
+          },
+          "500": {
+            $ref: "#/components/responses/InternalServerError",
           },
         },
       },
@@ -380,7 +498,13 @@ const swaggerSpec = {
             description: "내 정보 조회 성공",
           },
           "401": {
-            description: "인증 실패",
+            $ref: "#/components/responses/UnauthorizedError",
+          },
+          "404": {
+            $ref: "#/components/responses/NotFoundError",
+          },
+          "500": {
+            $ref: "#/components/responses/InternalServerError",
           },
         },
       },
@@ -405,6 +529,18 @@ const swaggerSpec = {
           "200": {
             description: "내 프로필 수정 성공",
           },
+          "400": {
+            $ref: "#/components/responses/ValidationError",
+          },
+          "401": {
+            $ref: "#/components/responses/UnauthorizedError",
+          },
+          "409": {
+            $ref: "#/components/responses/ConflictError",
+          },
+          "500": {
+            $ref: "#/components/responses/InternalServerError",
+          },
         },
       },
     },
@@ -428,6 +564,18 @@ const swaggerSpec = {
           "200": {
             description: "비밀번호 변경 성공",
           },
+          "400": {
+            $ref: "#/components/responses/ValidationError",
+          },
+          "401": {
+            $ref: "#/components/responses/UnauthorizedError",
+          },
+          "404": {
+            $ref: "#/components/responses/NotFoundError",
+          },
+          "500": {
+            $ref: "#/components/responses/InternalServerError",
+          },
         },
       },
     },
@@ -440,6 +588,12 @@ const swaggerSpec = {
         responses: {
           "200": {
             description: "내 포트폴리오 목록 조회 성공",
+          },
+          "401": {
+            $ref: "#/components/responses/UnauthorizedError",
+          },
+          "500": {
+            $ref: "#/components/responses/InternalServerError",
           },
         },
       },
@@ -461,6 +615,15 @@ const swaggerSpec = {
           "201": {
             description: "포트폴리오 생성 성공",
           },
+          "400": {
+            $ref: "#/components/responses/ValidationError",
+          },
+          "401": {
+            $ref: "#/components/responses/UnauthorizedError",
+          },
+          "500": {
+            $ref: "#/components/responses/InternalServerError",
+          },
         },
       },
     },
@@ -481,6 +644,15 @@ const swaggerSpec = {
         responses: {
           "200": {
             description: "포트폴리오 상세 조회 성공",
+          },
+          "401": {
+            $ref: "#/components/responses/UnauthorizedError",
+          },
+          "404": {
+            $ref: "#/components/responses/NotFoundError",
+          },
+          "500": {
+            $ref: "#/components/responses/InternalServerError",
           },
         },
       },
@@ -509,6 +681,18 @@ const swaggerSpec = {
         responses: {
           "200": {
             description: "포트폴리오 수정 성공",
+          },
+          "400": {
+            $ref: "#/components/responses/ValidationError",
+          },
+          "401": {
+            $ref: "#/components/responses/UnauthorizedError",
+          },
+          "404": {
+            $ref: "#/components/responses/NotFoundError",
+          },
+          "500": {
+            $ref: "#/components/responses/InternalServerError",
           },
         },
       },
@@ -541,6 +725,18 @@ const swaggerSpec = {
           "200": {
             description: "포트폴리오 공개 여부 수정 성공",
           },
+          "400": {
+            $ref: "#/components/responses/ValidationError",
+          },
+          "401": {
+            $ref: "#/components/responses/UnauthorizedError",
+          },
+          "404": {
+            $ref: "#/components/responses/NotFoundError",
+          },
+          "500": {
+            $ref: "#/components/responses/InternalServerError",
+          },
         },
       },
     },
@@ -572,6 +768,18 @@ const swaggerSpec = {
           "200": {
             description: "포트폴리오 공유 여부 수정 성공",
           },
+          "400": {
+            $ref: "#/components/responses/ValidationError",
+          },
+          "401": {
+            $ref: "#/components/responses/UnauthorizedError",
+          },
+          "404": {
+            $ref: "#/components/responses/NotFoundError",
+          },
+          "500": {
+            $ref: "#/components/responses/InternalServerError",
+          },
         },
       },
     },
@@ -592,6 +800,18 @@ const swaggerSpec = {
         responses: {
           "200": {
             description: "AI 초안 생성 성공",
+          },
+          "401": {
+            $ref: "#/components/responses/UnauthorizedError",
+          },
+          "404": {
+            $ref: "#/components/responses/NotFoundError",
+          },
+          "409": {
+            $ref: "#/components/responses/ConflictError",
+          },
+          "500": {
+            $ref: "#/components/responses/InternalServerError",
           },
         },
       },
@@ -624,6 +844,18 @@ const swaggerSpec = {
           "200": {
             description: "AI 수정 반영 성공",
           },
+          "400": {
+            $ref: "#/components/responses/ValidationError",
+          },
+          "401": {
+            $ref: "#/components/responses/UnauthorizedError",
+          },
+          "404": {
+            $ref: "#/components/responses/NotFoundError",
+          },
+          "500": {
+            $ref: "#/components/responses/InternalServerError",
+          },
         },
       },
     },
@@ -644,6 +876,15 @@ const swaggerSpec = {
         responses: {
           "200": {
             description: "포트폴리오 버전 목록 조회 성공",
+          },
+          "401": {
+            $ref: "#/components/responses/UnauthorizedError",
+          },
+          "404": {
+            $ref: "#/components/responses/NotFoundError",
+          },
+          "500": {
+            $ref: "#/components/responses/InternalServerError",
           },
         },
       },
@@ -672,6 +913,15 @@ const swaggerSpec = {
           "200": {
             description: "포트폴리오 버전 상세 조회 성공",
           },
+          "401": {
+            $ref: "#/components/responses/UnauthorizedError",
+          },
+          "404": {
+            $ref: "#/components/responses/NotFoundError",
+          },
+          "500": {
+            $ref: "#/components/responses/InternalServerError",
+          },
         },
       },
     },
@@ -683,6 +933,9 @@ const swaggerSpec = {
         responses: {
           "200": {
             description: "공개 포트폴리오 목록 조회 성공",
+          },
+          "500": {
+            $ref: "#/components/responses/InternalServerError",
           },
         },
       },
@@ -703,6 +956,15 @@ const swaggerSpec = {
         responses: {
           "200": {
             description: "공개 포트폴리오 상세 조회 성공",
+          },
+          "400": {
+            $ref: "#/components/responses/ValidationError",
+          },
+          "404": {
+            $ref: "#/components/responses/NotFoundError",
+          },
+          "500": {
+            $ref: "#/components/responses/InternalServerError",
           },
         },
       },
@@ -727,6 +989,12 @@ const swaggerSpec = {
           "200": {
             description: "공유 포트폴리오 조회 성공",
           },
+          "404": {
+            $ref: "#/components/responses/NotFoundError",
+          },
+          "500": {
+            $ref: "#/components/responses/InternalServerError",
+          },
         },
       },
     },
@@ -746,6 +1014,15 @@ const swaggerSpec = {
         responses: {
           "200": {
             description: "댓글 목록 조회 성공",
+          },
+          "400": {
+            $ref: "#/components/responses/ValidationError",
+          },
+          "404": {
+            $ref: "#/components/responses/NotFoundError",
+          },
+          "500": {
+            $ref: "#/components/responses/InternalServerError",
           },
         },
       },
@@ -774,6 +1051,18 @@ const swaggerSpec = {
         responses: {
           "201": {
             description: "댓글 작성 성공",
+          },
+          "400": {
+            $ref: "#/components/responses/ValidationError",
+          },
+          "401": {
+            $ref: "#/components/responses/UnauthorizedError",
+          },
+          "404": {
+            $ref: "#/components/responses/NotFoundError",
+          },
+          "500": {
+            $ref: "#/components/responses/InternalServerError",
           },
         },
       },
@@ -806,6 +1095,21 @@ const swaggerSpec = {
           "200": {
             description: "댓글 수정 성공",
           },
+          "400": {
+            $ref: "#/components/responses/ValidationError",
+          },
+          "401": {
+            $ref: "#/components/responses/UnauthorizedError",
+          },
+          "403": {
+            $ref: "#/components/responses/ForbiddenError",
+          },
+          "404": {
+            $ref: "#/components/responses/NotFoundError",
+          },
+          "500": {
+            $ref: "#/components/responses/InternalServerError",
+          },
         },
       },
       delete: {
@@ -823,6 +1127,18 @@ const swaggerSpec = {
         responses: {
           "200": {
             description: "댓글 삭제 성공",
+          },
+          "401": {
+            $ref: "#/components/responses/UnauthorizedError",
+          },
+          "403": {
+            $ref: "#/components/responses/ForbiddenError",
+          },
+          "404": {
+            $ref: "#/components/responses/NotFoundError",
+          },
+          "500": {
+            $ref: "#/components/responses/InternalServerError",
           },
         },
       },
