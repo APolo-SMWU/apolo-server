@@ -6,7 +6,9 @@ import { createPortfolioController,
         updatePortfolioController, 
         updatePortfolioVisibilityController,
         generatePortfolioController,
-        editPortfolioWithAiController
+        editPortfolioWithAiController,
+        createCommentController,
+        getCommentsByPortfolioController,
 } from "../controllers/portfolios.controller";
 
 const router = Router();
@@ -22,5 +24,7 @@ router.patch(
 );
 router.post("/:portfolioId/generate", authMiddleware, generatePortfolioController);
 router.post("/:portfolioId/ai-edit", authMiddleware, editPortfolioWithAiController);
+router.post("/:portfolioId/comments", authMiddleware, createCommentController);
+router.get("/:portfolioId/comments", getCommentsByPortfolioController);
 
 export default router;

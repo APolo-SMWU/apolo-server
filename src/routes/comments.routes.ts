@@ -1,8 +1,9 @@
 import { Router } from "express";
-import { getComments } from "../controllers/comments.controller";
+import { authMiddleware } from "../middlewares/auth.middleware";
+import { deleteCommentController } from "../controllers/comments.controller";
 
 const router = Router();
 
-router.get("/", getComments);
+router.delete("/:commentId", authMiddleware, deleteCommentController);
 
 export default router;

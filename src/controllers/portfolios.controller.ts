@@ -2,6 +2,10 @@ import { Response } from "express";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import { createPortfolio, getMyPortfolios, getPortfolioById, updatePortfolio, updatePortfolioVisibility} from "../services/portfolios.service";
 import { generatePortfolioWithMock, editPortfolioWithMock } from "../services/ai.service";
+import {
+  createComment,
+  getCommentsByPortfolioId,
+} from "../services/comments.service";
 
 export const createPortfolioController = async (
   req: AuthRequest,
@@ -186,5 +190,41 @@ export const editPortfolioWithAiController = async (
   res.status(200).json({
     message: "AI 수정 반영 성공",
     portfolio,
+  });
+};
+
+export const createCommentController = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  const userId = req.user?.userId;
+  const portfolioId = Number(req.params.portfolioId);
+  const { content } = req.body;
+
+  if (!userId) {
+    return res.status(401).json({
+      message: "인증된 사용자 정보가 없습니다.",
+    });
+  }
+
+  const comment = await createComment(userId, portfolioId, content);
+
+  res.status(201).json({
+    message: "댓글 작성 성공",
+    comment,
+  });
+};
+
+export const getCommentsByPortfolioController = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  const portfolioId = Number(req.params.portfolioId);
+
+  const comments = await getCommentsByPortfolioId(portfolioId);
+
+  res.status(200).json({
+    message: "댓글 목록 조회 성공",
+    comments,
   });
 };
