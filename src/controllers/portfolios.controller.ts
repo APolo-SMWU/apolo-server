@@ -16,6 +16,12 @@ import { validateRequest } from "../utils/validate-request";
 import { createCommentSchema } from "../schemas/comment.schema";
 import { aiEditSchema } from "../schemas/ai.schema";
 import { portfolioIdParamSchema } from "../schemas/common.schema";
+import {
+  createPortfolioSchema,
+  updatePortfolioSchema,
+  updatePortfolioShareSchema,
+  updatePortfolioVisibilitySchema,
+} from "../schemas/portfolio.schema";
 
 export const createPortfolioController = async (
   req: AuthRequest,
@@ -36,7 +42,7 @@ export const createPortfolioController = async (
     directionPrompt,
     externalLinks,
     currentContentJson,
-  } = req.body;
+  } = validateRequest(createPortfolioSchema, req.body);
 
   const portfolio = await createPortfolio(
     userId,
@@ -115,7 +121,7 @@ export const updatePortfolioController = async (
     directionPrompt,
     externalLinks,
     currentContentJson,
-  } = req.body;
+  } = validateRequest(updatePortfolioSchema, req.body);
 
   const portfolio = await updatePortfolio(
     userId,
@@ -140,7 +146,7 @@ export const updatePortfolioVisibilityController = async (
 ) => {
   const userId = req.user?.userId;
   const { portfolioId } = validateRequest(portfolioIdParamSchema, req.params);
-  const { isPublic } = req.body;
+  const { isPublic } = validateRequest(updatePortfolioVisibilitySchema, req.body);
 
   if (!userId) {
     return res.status(401).json({
@@ -245,7 +251,7 @@ export const updatePortfolioShareController = async (
 ) => {
   const userId = req.user?.userId;
   const { portfolioId } = validateRequest(portfolioIdParamSchema, req.params);
-  const { isShared } = req.body;
+  const { isShared } = validateRequest(updatePortfolioShareSchema, req.body);
 
   if (!userId) {
     return res.status(401).json({

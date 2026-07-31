@@ -101,9 +101,19 @@ const swaggerSpec = {
 
       ExternalLink: {
         type: "object",
+        required: ["label", "url"],
         properties: {
-          label: { type: "string", example: "GitHub" },
-          url: { type: "string", example: "https://github.com/test" },
+          label: {
+            type: "string",
+            minLength: 1,
+            maxLength: 30,
+            example: "GitHub",
+          },
+          url: {
+            type: "string",
+            format: "uri",
+            example: "https://github.com/test",
+          },
         },
       },
 
@@ -168,21 +178,40 @@ const swaggerSpec = {
           "currentContentJson",
         ],
         properties: {
-          title: { type: "string", example: "나의 첫 포트폴리오" },
-          jobRole: { type: "string", example: "Frontend Developer" },
-          careerLevel: { type: "string", example: "Student" },
+          title: {
+            type: "string",
+            minLength: 1,
+            maxLength: 100,
+            example: "나의 첫 포트폴리오",
+          },
+          jobRole: {
+            type: "string",
+            minLength: 1,
+            maxLength: 50,
+            example: "Frontend Developer",
+          },
+          careerLevel: {
+            type: "string",
+            minLength: 1,
+            maxLength: 30,
+            example: "Student",
+          },
           directionPrompt: {
             type: "string",
+            minLength: 1,
+            maxLength: 500,
             example: "미니멀하고 프로젝트 중심의 포트폴리오로 만들고 싶어요.",
           },
           externalLinks: {
             type: "array",
+            maxItems: 10,
             items: {
               $ref: "#/components/schemas/ExternalLink",
             },
           },
           currentContentJson: {
             type: "object",
+            additionalProperties: true,
             example: {
               blocks: [],
             },
@@ -192,22 +221,42 @@ const swaggerSpec = {
 
       UpdatePortfolioRequest: {
         type: "object",
+        minProperties: 1,
         properties: {
-          title: { type: "string", example: "수정된 포트폴리오 제목" },
-          jobRole: { type: "string", example: "Frontend Developer" },
-          careerLevel: { type: "string", example: "Student" },
+          title: {
+            type: "string",
+            minLength: 1,
+            maxLength: 100,
+            example: "수정된 포트폴리오 제목",
+          },
+          jobRole: {
+            type: "string",
+            minLength: 1,
+            maxLength: 50,
+            example: "Frontend Developer",
+          },
+          careerLevel: {
+            type: "string",
+            minLength: 1,
+            maxLength: 30,
+            example: "Student",
+          },
           directionPrompt: {
             type: "string",
+            minLength: 1,
+            maxLength: 500,
             example: "조금 더 차분한 느낌으로 바꾸고 싶어요.",
           },
           externalLinks: {
             type: "array",
+            maxItems: 10,
             items: {
               $ref: "#/components/schemas/ExternalLink",
             },
           },
           currentContentJson: {
             type: "object",
+            additionalProperties: true,
             example: {
               blocks: [{ type: "hero", text: "updated" }],
             },
