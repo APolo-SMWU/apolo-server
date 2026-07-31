@@ -1,3 +1,4 @@
+import { AppError } from "../errors/app-error";
 import prisma from "../lib/prisma";
 
 // 내 포트폴리오 버전 목록 조회
@@ -13,7 +14,7 @@ export const getPortfolioVersions = async (
   });
 
   if (!portfolio) {
-    throw new Error("포트폴리오를 찾을 수 없습니다.");
+    throw new AppError(404, "포트폴리오를 찾을 수 없습니다.");
   }
 
   const versions = await prisma.portfolioVersion.findMany({
@@ -42,7 +43,7 @@ export const getPortfolioVersionById = async (
   });
 
   if (!portfolio) {
-    throw new Error("포트폴리오를 찾을 수 없습니다.");
+    throw new AppError(404, "포트폴리오를 찾을 수 없습니다.");
   }
 
   const version = await prisma.portfolioVersion.findFirst({
@@ -53,7 +54,7 @@ export const getPortfolioVersionById = async (
   });
 
   if (!version) {
-    throw new Error("버전 정보를 찾을 수 없습니다.");
+    throw new AppError(404, "버전 정보를 찾을 수 없습니다.");
   }
 
   return version;

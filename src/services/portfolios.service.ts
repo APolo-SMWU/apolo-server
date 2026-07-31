@@ -1,4 +1,5 @@
 import type { Prisma } from "../generated/prisma/client";
+import { AppError } from "../errors/app-error";
 import prisma from "../lib/prisma";
 import { randomUUID } from "crypto";
 
@@ -87,7 +88,7 @@ export const getPortfolioById = async (
   });
 
   if (!portfolio) {
-    throw new Error("포트폴리오를 찾을 수 없습니다.");
+    throw new AppError(404, "포트폴리오를 찾을 수 없습니다.");
   }
 
   return portfolio;
@@ -112,7 +113,7 @@ export const updatePortfolio = async (
   });
 
   if (!existingPortfolio) {
-    throw new Error("수정할 포트폴리오를 찾을 수 없습니다.");
+    throw new AppError(404, "수정할 포트폴리오를 찾을 수 없습니다.");
   }
 
   const data: {
@@ -174,7 +175,7 @@ export const updatePortfolioVisibility = async (
   });
 
   if (!existingPortfolio) {
-    throw new Error("수정할 포트폴리오를 찾을 수 없습니다.");
+    throw new AppError(404, "수정할 포트폴리오를 찾을 수 없습니다.");
   }
 
   const updatedPortfolio = await prisma.portfolio.update({
@@ -202,7 +203,7 @@ export const updatePortfolioShare = async (
   });
 
   if (!existingPortfolio) {
-    throw new Error("수정할 포트폴리오를 찾을 수 없습니다.");
+    throw new AppError(404, "수정할 포트폴리오를 찾을 수 없습니다.");
   }
 
   const updatedPortfolio = await prisma.portfolio.update({

@@ -1,3 +1,4 @@
+import { AppError } from "../errors/app-error";
 import prisma from "../lib/prisma";
 
 export const getSharedPortfolioByToken = async (shareToken: string) => {
@@ -9,7 +10,7 @@ export const getSharedPortfolioByToken = async (shareToken: string) => {
   });
 
   if (!portfolio) {
-    throw new Error("공유 포트폴리오를 찾을 수 없습니다.");
+    throw new AppError(404, "공유 포트폴리오를 찾을 수 없습니다.");
   }
 
   return portfolio;

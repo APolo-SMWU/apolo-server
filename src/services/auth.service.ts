@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { AppError } from "../errors/app-error";
 import prisma from "../lib/prisma";
 
 // 회원가입
@@ -12,7 +13,7 @@ export const signup = async (
 
   // 비밀번호 확인
   if (password !== passwordCheck) {
-    throw new Error("비밀번호가 일치하지 않습니다.");
+    throw new AppError(400, "비밀번호가 일치하지 않습니다.");
   }
 
   // 이메일, 닉네임 중복 확인
@@ -21,7 +22,7 @@ export const signup = async (
   });
 
   if (existingUserByEmail) {
-    throw new Error("이미 사용 중인 이메일입니다.");
+    throw new AppError(400, "이미 사용 중인 이메일입니다.");
   }
 
   const existingUserByNickname = await prisma.user.findUnique({
@@ -29,7 +30,7 @@ export const signup = async (
   });
 
   if (existingUserByNickname) {
-    throw new Error("이미 사용 중인 닉네임입니다.");
+    throw new AppError(400, "이미 사용 중인 닉네임입니다.");
   }
 
   // 비밀번호 해싱
@@ -59,14 +60,14 @@ export const login = async (email: string, password: string) => {
   });
 
   if (!user) {
-    throw new Error("존재하지 않는 이메일입니다.");
+    throw new AppError(401, "존재하지 않는 이메일입니다.");
   }
 
   // 2. 비밀번호 비교
   const isPasswordValid = await bcrypt.compare(password, user.password);
 
   if (!isPasswordValid) {
-    throw new Error("비밀번호가 일치하지 않습니다.");
+    throw new AppError(401, "비밀번호가 일치하지 않습니다.");
   }
 
   // 3. JWT 발급
@@ -93,7 +94,7 @@ export const getMe = async (userId: number) => {
   });
 
   if (!user) {
-    throw new Error("사용자를 찾을 수 없습니다.");
+    throw new AppError(404, "사용자를 찾을 수 없습니다.");
   }
 
   return {

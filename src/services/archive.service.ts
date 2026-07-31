@@ -1,3 +1,4 @@
+import { AppError } from "../errors/app-error";
 import prisma from "../lib/prisma";
 
 // 공개 포트폴리오 목록 조회
@@ -24,7 +25,7 @@ export const getPublicPortfolioById = async (portfolioId: number) => {
   });
 
   if (!portfolio) {
-    throw new Error("공개 포트폴리오를 찾을 수 없습니다.");
+    throw new AppError(404, "공개 포트폴리오를 찾을 수 없습니다.");
   }
 
   return portfolio;

@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import { AppError } from "../errors/app-error";
 import prisma from "../lib/prisma";
 
 // 내 프로필 수정
@@ -13,7 +14,7 @@ export const updateMyProfile = async (
   });
 
   if (!user) {
-    throw new Error("사용자를 찾을 수 없습니다.");
+    throw new AppError(404, "사용자를 찾을 수 없습니다.");
   }
 
   const existingUserByNickname = await prisma.user.findUnique({
@@ -23,7 +24,7 @@ export const updateMyProfile = async (
   });
 
   if (existingUserByNickname && existingUserByNickname.id !== userId) {
-    throw new Error("이미 사용 중인 닉네임입니다.");
+    throw new AppError(400, "이미 사용 중인 닉네임입니다.");
   }
 
   const updatedUser = await prisma.user.update({
@@ -56,17 +57,17 @@ export const updateMyPassword = async (
   });
 
   if (!user) {
-    throw new Error("사용자를 찾을 수 없습니다.");
+    throw new AppError(404, "사용자를 찾을 수 없습니다.");
   }
 
   const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
 
   if (!isPasswordValid) {
-    throw new Error("현재 비밀번호가 일치하지 않습니다.");
+    throw new AppError(401, "현재 비밀번호가 일치하지 않습니다.");
   }
 
   if (newPassword !== newPasswordCheck) {
-    throw new Error("새 비밀번호가 일치하지 않습니다.");
+    throw new AppError(400, "새 비밀번호가 일치하지 않습니다.");
   }
 
   const hashedPassword = await bcrypt.hash(newPassword, 10);

@@ -1,4 +1,5 @@
 import type { Prisma } from "../generated/prisma/client";
+import { AppError } from "../errors/app-error";
 import prisma from "../lib/prisma";
 
 // 버전 테이블에 저장할 스냅샷 만들기
@@ -45,7 +46,7 @@ export const generatePortfolioWithMock = async (
   });
 
   if (!existingPortfolio) {
-    throw new Error("포트폴리오를 찾을 수 없습니다.");
+    throw new AppError(404, "포트폴리오를 찾을 수 없습니다.");
   }
 
   const existingInitialVersion = await prisma.portfolioVersion.findFirst({
@@ -56,7 +57,7 @@ export const generatePortfolioWithMock = async (
   });
 
   if (existingInitialVersion) {
-    throw new Error("이미 AI 초안이 생성된 포트폴리오입니다.");
+    throw new AppError(400, "이미 AI 초안이 생성된 포트폴리오입니다.");
   }
 
   const mockGeneratedContent = {
@@ -107,7 +108,7 @@ export const editPortfolioWithMock = async (
   });
 
   if (!existingPortfolio) {
-    throw new Error("포트폴리오를 찾을 수 없습니다.");
+    throw new AppError(404, "포트폴리오를 찾을 수 없습니다.");
   }
 
   const mockEditedContent = {
