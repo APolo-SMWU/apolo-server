@@ -10,7 +10,12 @@ export const validateRequest = <T>(schema: ZodSchema<T>, data: unknown) => {
       message: issue.message,
     }));
 
-    throw new AppError(400, JSON.stringify(errors));
+    throw new AppError(
+      400,
+      "잘못된 요청입니다.",
+      "VALIDATION_ERROR",
+      errors
+    );
   }
 
   return result.data;
