@@ -1,6 +1,12 @@
 import { Response } from "express";
 import { AuthRequest } from "../middlewares/auth.middleware";
-import { createPortfolio, getMyPortfolios, getPortfolioById, updatePortfolio, updatePortfolioVisibility} from "../services/portfolios.service";
+import { createPortfolio,
+         getMyPortfolios,
+         getPortfolioById,
+         updatePortfolio,
+         updatePortfolioVisibility,
+         updatePortfolioShare,
+} from "../services/portfolios.service";
 import { generatePortfolioWithMock, editPortfolioWithMock } from "../services/ai.service";
 import {
   createComment,
@@ -230,5 +236,27 @@ export const getCommentsByPortfolioController = async (
   res.status(200).json({
     message: "댓글 목록 조회 성공",
     comments,
+  });
+};
+
+export const updatePortfolioShareController = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  const userId = req.user?.userId;
+  const { portfolioId } = validateRequest(portfolioIdParamSchema, req.params);
+  const { isShared } = req.body;
+
+  if (!userId) {
+    return res.status(401).json({
+      message: "인증된 사용자 정보가 없습니다.",
+    });
+  }
+
+  const portfolio = await updatePortfolioShare(userId, portfolioId, isShared);
+
+  res.status(200).json({
+    message: "포트폴리오 공유 여부 수정 성공",
+    portfolio,
   });
 };

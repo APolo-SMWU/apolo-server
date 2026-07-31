@@ -1,5 +1,6 @@
 import type { Prisma } from "../generated/prisma/client";
 import prisma from "../lib/prisma";
+import { randomUUID } from "crypto";
 
 // 포트폴리오 스냅샷 생성
 const buildPortfolioSnapshot = (portfolio: {
@@ -182,6 +183,36 @@ export const updatePortfolioVisibility = async (
     },
     data: {
       isPublic,
+    },
+  });
+
+  return updatedPortfolio;
+};
+
+export const updatePortfolioShare = async (
+  userId: number,
+  portfolioId: number,
+  isShared: boolean
+) => {
+  const existingPortfolio = await prisma.portfolio.findFirst({
+    where: {
+      id: portfolioId,
+      userId,
+    },
+  });
+
+  if (!existingPortfolio) {
+    throw new Error("수정할 포트폴리오를 찾을 수 없습니다.");
+  }
+
+  const updatedPortfolio = await prisma.portfolio.update({
+    where: {
+      id: portfolioId,
+    },
+    data: {
+      isShared,
+      shareToken: isShared ? randomUUID() : null,
+      sharedAt: isShared ? new Date() : null,
     },
   });
 
