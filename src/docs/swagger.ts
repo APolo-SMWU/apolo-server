@@ -7,6 +7,10 @@ const swaggerSpec = {
   },
   servers: [
     {
+      url: "https://apolo-server.onrender.com",
+      description: "Production server",
+    },
+    {
       url: "http://localhost:3000",
       description: "Local server",
     },
