@@ -1,4 +1,4 @@
-import type { Prisma } from "../generated/prisma/client";
+import type { Prisma } from "@prisma/client";
 import { AppError } from "../errors/app-error";
 import prisma from "../lib/prisma";
 import { randomUUID } from "crypto";
