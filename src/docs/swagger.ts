@@ -103,6 +103,26 @@ const swaggerSpec = {
         },
       },
 
+      UserResponse: {
+        type: "object",
+        properties: {
+          message: { type: "string", example: "내 정보 조회 성공" },
+          user: {
+            $ref: "#/components/schemas/User",
+          },
+        },
+      },
+
+      PasswordUpdateResponse: {
+        type: "object",
+        properties: {
+          message: {
+            type: "string",
+            example: "비밀번호 변경이 완료되었습니다.",
+          },
+        },
+      },
+
       ExternalLink: {
         type: "object",
         required: ["label", "url"],
@@ -328,6 +348,52 @@ const swaggerSpec = {
         },
       },
 
+      PortfolioResponse: {
+        type: "object",
+        properties: {
+          message: { type: "string", example: "포트폴리오 상세 조회 성공" },
+          portfolio: {
+            $ref: "#/components/schemas/Portfolio",
+          },
+        },
+      },
+
+      PortfolioListResponse: {
+        type: "object",
+        properties: {
+          message: { type: "string", example: "내 포트폴리오 목록 조회 성공" },
+          portfolios: {
+            type: "array",
+            items: {
+              $ref: "#/components/schemas/Portfolio",
+            },
+          },
+        },
+      },
+
+      PortfolioVersionResponse: {
+        type: "object",
+        properties: {
+          message: { type: "string", example: "포트폴리오 버전 상세 조회 성공" },
+          version: {
+            $ref: "#/components/schemas/PortfolioVersion",
+          },
+        },
+      },
+
+      PortfolioVersionListResponse: {
+        type: "object",
+        properties: {
+          message: { type: "string", example: "포트폴리오 버전 목록 조회 성공" },
+          versions: {
+            type: "array",
+            items: {
+              $ref: "#/components/schemas/PortfolioVersion",
+            },
+          },
+        },
+      },
+
       CommentRequest: {
         type: "object",
         required: ["content"],
@@ -358,6 +424,29 @@ const swaggerSpec = {
             type: "string",
             format: "date-time",
             example: "2026-07-31T07:28:35.575Z",
+          },
+        },
+      },
+
+      CommentResponse: {
+        type: "object",
+        properties: {
+          message: { type: "string", example: "댓글 작성 성공" },
+          comment: {
+            $ref: "#/components/schemas/Comment",
+          },
+        },
+      },
+
+      CommentListResponse: {
+        type: "object",
+        properties: {
+          message: { type: "string", example: "댓글 목록 조회 성공" },
+          comments: {
+            type: "array",
+            items: {
+              $ref: "#/components/schemas/Comment",
+            },
           },
         },
       },
@@ -490,12 +579,33 @@ const swaggerSpec = {
               schema: {
                 $ref: "#/components/schemas/SignupRequest",
               },
+              example: {
+                email: "test@example.com",
+                nickname: "testuser",
+                password: "password123",
+                passwordCheck: "password123",
+              },
             },
           },
         },
         responses: {
           "201": {
             description: "회원가입 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/UserResponse",
+                },
+                example: {
+                  message: "회원가입이 완료되었습니다.",
+                  user: {
+                    id: 1,
+                    email: "test@example.com",
+                    nickname: "testuser",
+                  },
+                },
+              },
+            },
           },
           "400": {
             $ref: "#/components/responses/ValidationError",
@@ -521,12 +631,27 @@ const swaggerSpec = {
               schema: {
                 $ref: "#/components/schemas/LoginRequest",
               },
+              example: {
+                email: "test@example.com",
+                password: "password123",
+              },
             },
           },
         },
         responses: {
           "200": {
             description: "로그인 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/LoginResponse",
+                },
+                example: {
+                  message: "로그인에 성공했습니다.",
+                  accessToken: "jwt-token-example",
+                },
+              },
+            },
           },
           "400": {
             $ref: "#/components/responses/ValidationError",
@@ -549,6 +674,21 @@ const swaggerSpec = {
         responses: {
           "200": {
             description: "내 정보 조회 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/UserResponse",
+                },
+                example: {
+                  message: "내 정보 조회 성공",
+                  user: {
+                    id: 1,
+                    email: "test@example.com",
+                    nickname: "testuser",
+                  },
+                },
+              },
+            },
           },
           "401": {
             $ref: "#/components/responses/UnauthorizedError",
@@ -575,12 +715,30 @@ const swaggerSpec = {
               schema: {
                 $ref: "#/components/schemas/UpdateProfileRequest",
               },
+              example: {
+                nickname: "newNickname",
+              },
             },
           },
         },
         responses: {
           "200": {
             description: "내 프로필 수정 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/UserResponse",
+                },
+                example: {
+                  message: "내 프로필 수정 성공",
+                  user: {
+                    id: 1,
+                    email: "test@example.com",
+                    nickname: "newNickname",
+                  },
+                },
+              },
+            },
           },
           "400": {
             $ref: "#/components/responses/ValidationError",
@@ -610,12 +768,27 @@ const swaggerSpec = {
               schema: {
                 $ref: "#/components/schemas/UpdatePasswordRequest",
               },
+              example: {
+                currentPassword: "password123",
+                newPassword: "newpassword123",
+                newPasswordCheck: "newpassword123",
+              },
             },
           },
         },
         responses: {
           "200": {
             description: "비밀번호 변경 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/PasswordUpdateResponse",
+                },
+                example: {
+                  message: "비밀번호 변경이 완료되었습니다.",
+                },
+              },
+            },
           },
           "400": {
             $ref: "#/components/responses/ValidationError",
@@ -641,6 +814,43 @@ const swaggerSpec = {
         responses: {
           "200": {
             description: "내 포트폴리오 목록 조회 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/PortfolioListResponse",
+                },
+                example: {
+                  message: "내 포트폴리오 목록 조회 성공",
+                  portfolios: [
+                    {
+                      id: 2,
+                      userId: 1,
+                      title: "두 번째 포트폴리오",
+                      jobRole: "Backend Developer",
+                      careerLevel: "Junior",
+                      directionPrompt: "미니멀하고 프로젝트 중심의 포트폴리오로 만들고 싶어요.",
+                      externalLinks: [
+                        {
+                          label: "GitHub",
+                          url: "https://github.com/test",
+                        },
+                      ],
+                      currentContentJson: {
+                        blocks: [
+                          { type: "hero", text: "안녕하세요. 백엔드 개발자입니다." },
+                        ],
+                      },
+                      isPublic: true,
+                      isShared: false,
+                      shareToken: null,
+                      sharedAt: null,
+                      createdAt: "2026-07-28T07:29:46.319Z",
+                      updatedAt: "2026-07-31T07:24:21.385Z",
+                    },
+                  ],
+                },
+              },
+            },
           },
           "401": {
             $ref: "#/components/responses/UnauthorizedError",
@@ -661,12 +871,60 @@ const swaggerSpec = {
               schema: {
                 $ref: "#/components/schemas/CreatePortfolioRequest",
               },
+              example: {
+                title: "나의 첫 포트폴리오",
+                jobRole: "Backend Developer",
+                careerLevel: "Junior",
+                directionPrompt: "미니멀하고 프로젝트 중심의 포트폴리오로 만들고 싶어요.",
+                externalLinks: [
+                  {
+                    label: "GitHub",
+                    url: "https://github.com/test",
+                  },
+                ],
+                currentContentJson: {
+                  blocks: [],
+                },
+              },
             },
           },
         },
         responses: {
           "201": {
             description: "포트폴리오 생성 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/PortfolioResponse",
+                },
+                example: {
+                  message: "포트폴리오 생성 성공",
+                  portfolio: {
+                    id: 1,
+                    userId: 1,
+                    title: "나의 첫 포트폴리오",
+                    jobRole: "Backend Developer",
+                    careerLevel: "Junior",
+                    directionPrompt: "미니멀하고 프로젝트 중심의 포트폴리오로 만들고 싶어요.",
+                    externalLinks: [
+                      {
+                        label: "GitHub",
+                        url: "https://github.com/test",
+                      },
+                    ],
+                    currentContentJson: {
+                      blocks: [],
+                    },
+                    isPublic: false,
+                    isShared: false,
+                    shareToken: null,
+                    sharedAt: null,
+                    createdAt: "2026-08-05T06:00:00.000Z",
+                    updatedAt: "2026-08-05T06:00:00.000Z",
+                  },
+                },
+              },
+            },
           },
           "400": {
             $ref: "#/components/responses/ValidationError",
@@ -691,12 +949,48 @@ const swaggerSpec = {
             name: "portfolioId",
             in: "path",
             required: true,
+            description: "조회할 포트폴리오 ID",
             schema: { type: "integer", example: 1 },
           },
         ],
         responses: {
           "200": {
             description: "포트폴리오 상세 조회 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/PortfolioResponse",
+                },
+                example: {
+                  message: "포트폴리오 상세 조회 성공",
+                  portfolio: {
+                    id: 1,
+                    userId: 1,
+                    title: "나의 첫 포트폴리오",
+                    jobRole: "Backend Developer",
+                    careerLevel: "Junior",
+                    directionPrompt: "미니멀하고 프로젝트 중심의 포트폴리오로 만들고 싶어요.",
+                    externalLinks: [
+                      {
+                        label: "GitHub",
+                        url: "https://github.com/test",
+                      },
+                    ],
+                    currentContentJson: {
+                      blocks: [
+                        { type: "hero", text: "안녕하세요. 백엔드 개발자입니다." },
+                      ],
+                    },
+                    isPublic: false,
+                    isShared: false,
+                    shareToken: null,
+                    sharedAt: null,
+                    createdAt: "2026-08-05T06:00:00.000Z",
+                    updatedAt: "2026-08-05T06:10:00.000Z",
+                  },
+                },
+              },
+            },
           },
           "401": {
             $ref: "#/components/responses/UnauthorizedError",
@@ -718,6 +1012,7 @@ const swaggerSpec = {
             name: "portfolioId",
             in: "path",
             required: true,
+            description: "수정할 포트폴리오 ID",
             schema: { type: "integer", example: 1 },
           },
         ],
@@ -728,12 +1023,57 @@ const swaggerSpec = {
               schema: {
                 $ref: "#/components/schemas/UpdatePortfolioRequest",
               },
+              example: {
+                title: "수정된 포트폴리오 제목",
+                currentContentJson: {
+                  blocks: [
+                    { type: "hero", text: "안녕하세요. 문제 해결을 즐기는 백엔드 개발자입니다." },
+                    { type: "project", text: "대표 프로젝트 섹션" },
+                  ],
+                },
+              },
             },
           },
         },
         responses: {
           "200": {
             description: "포트폴리오 수정 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/PortfolioResponse",
+                },
+                example: {
+                  message: "포트폴리오 수정 성공",
+                  portfolio: {
+                    id: 1,
+                    userId: 1,
+                    title: "수정된 포트폴리오 제목",
+                    jobRole: "Backend Developer",
+                    careerLevel: "Junior",
+                    directionPrompt: "미니멀하고 프로젝트 중심의 포트폴리오로 만들고 싶어요.",
+                    externalLinks: [
+                      {
+                        label: "GitHub",
+                        url: "https://github.com/test",
+                      },
+                    ],
+                    currentContentJson: {
+                      blocks: [
+                        { type: "hero", text: "안녕하세요. 문제 해결을 즐기는 백엔드 개발자입니다." },
+                        { type: "project", text: "대표 프로젝트 섹션" },
+                      ],
+                    },
+                    isPublic: false,
+                    isShared: false,
+                    shareToken: null,
+                    sharedAt: null,
+                    createdAt: "2026-08-05T06:00:00.000Z",
+                    updatedAt: "2026-08-05T06:15:00.000Z",
+                  },
+                },
+              },
+            },
           },
           "400": {
             $ref: "#/components/responses/ValidationError",
@@ -761,6 +1101,7 @@ const swaggerSpec = {
             name: "portfolioId",
             in: "path",
             required: true,
+            description: "공개 여부를 바꿀 포트폴리오 ID",
             schema: { type: "integer", example: 1 },
           },
         ],
@@ -771,12 +1112,43 @@ const swaggerSpec = {
               schema: {
                 $ref: "#/components/schemas/UpdateVisibilityRequest",
               },
+              example: {
+                isPublic: true,
+              },
             },
           },
         },
         responses: {
           "200": {
             description: "포트폴리오 공개 여부 수정 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/PortfolioResponse",
+                },
+                example: {
+                  message: "포트폴리오 공개 여부 수정 성공",
+                  portfolio: {
+                    id: 1,
+                    userId: 1,
+                    title: "나의 첫 포트폴리오",
+                    jobRole: "Backend Developer",
+                    careerLevel: "Junior",
+                    directionPrompt: "미니멀하고 프로젝트 중심의 포트폴리오로 만들고 싶어요.",
+                    externalLinks: [],
+                    currentContentJson: {
+                      blocks: [],
+                    },
+                    isPublic: true,
+                    isShared: false,
+                    shareToken: null,
+                    sharedAt: null,
+                    createdAt: "2026-08-05T06:00:00.000Z",
+                    updatedAt: "2026-08-05T06:20:00.000Z",
+                  },
+                },
+              },
+            },
           },
           "400": {
             $ref: "#/components/responses/ValidationError",
@@ -804,6 +1176,7 @@ const swaggerSpec = {
             name: "portfolioId",
             in: "path",
             required: true,
+            description: "공유 여부를 바꿀 포트폴리오 ID",
             schema: { type: "integer", example: 1 },
           },
         ],
@@ -814,12 +1187,43 @@ const swaggerSpec = {
               schema: {
                 $ref: "#/components/schemas/UpdateShareRequest",
               },
+              example: {
+                isShared: true,
+              },
             },
           },
         },
         responses: {
           "200": {
             description: "포트폴리오 공유 여부 수정 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/PortfolioResponse",
+                },
+                example: {
+                  message: "포트폴리오 공유 여부 수정 성공",
+                  portfolio: {
+                    id: 1,
+                    userId: 1,
+                    title: "나의 첫 포트폴리오",
+                    jobRole: "Backend Developer",
+                    careerLevel: "Junior",
+                    directionPrompt: "미니멀하고 프로젝트 중심의 포트폴리오로 만들고 싶어요.",
+                    externalLinks: [],
+                    currentContentJson: {
+                      blocks: [],
+                    },
+                    isPublic: false,
+                    isShared: true,
+                    shareToken: "cace5987-f901-4840-bc49-f6c897e1e446",
+                    sharedAt: "2026-08-05T06:25:00.000Z",
+                    createdAt: "2026-08-05T06:00:00.000Z",
+                    updatedAt: "2026-08-05T06:25:00.000Z",
+                  },
+                },
+              },
+            },
           },
           "400": {
             $ref: "#/components/responses/ValidationError",
@@ -847,12 +1251,45 @@ const swaggerSpec = {
             name: "portfolioId",
             in: "path",
             required: true,
+            description: "AI 초안을 생성할 포트폴리오 ID",
             schema: { type: "integer", example: 1 },
           },
         ],
         responses: {
           "200": {
             description: "AI 초안 생성 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/PortfolioResponse",
+                },
+                example: {
+                  message: "AI 초안 생성 성공",
+                  portfolio: {
+                    id: 1,
+                    userId: 1,
+                    title: "나의 첫 포트폴리오",
+                    jobRole: "Backend Developer",
+                    careerLevel: "Junior",
+                    directionPrompt: "미니멀하고 프로젝트 중심의 포트폴리오로 만들고 싶어요.",
+                    externalLinks: [],
+                    currentContentJson: {
+                      blocks: [
+                        { type: "hero", text: "AI가 생성한 포트폴리오 초안입니다." },
+                        { type: "about", text: "간단한 자기소개 섹션" },
+                        { type: "project", text: "대표 프로젝트 섹션" },
+                      ],
+                    },
+                    isPublic: false,
+                    isShared: false,
+                    shareToken: null,
+                    sharedAt: null,
+                    createdAt: "2026-08-05T06:00:00.000Z",
+                    updatedAt: "2026-08-05T06:30:00.000Z",
+                  },
+                },
+              },
+            },
           },
           "401": {
             $ref: "#/components/responses/UnauthorizedError",
@@ -880,6 +1317,7 @@ const swaggerSpec = {
             name: "portfolioId",
             in: "path",
             required: true,
+            description: "AI로 수정할 포트폴리오 ID",
             schema: { type: "integer", example: 1 },
           },
         ],
@@ -890,12 +1328,48 @@ const swaggerSpec = {
               schema: {
                 $ref: "#/components/schemas/AiEditRequest",
               },
+              example: {
+                prompt: "hero 문구를 더 자신감 있게 바꾸고 프로젝트 섹션을 위로 올려줘.",
+              },
             },
           },
         },
         responses: {
           "200": {
             description: "AI 수정 반영 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/PortfolioResponse",
+                },
+                example: {
+                  message: "AI 수정 반영 성공",
+                  portfolio: {
+                    id: 1,
+                    userId: 1,
+                    title: "나의 첫 포트폴리오",
+                    jobRole: "Backend Developer",
+                    careerLevel: "Junior",
+                    directionPrompt: "미니멀하고 프로젝트 중심의 포트폴리오로 만들고 싶어요.",
+                    externalLinks: [],
+                    currentContentJson: {
+                      blocks: [
+                        { type: "hero", text: "안녕하세요. 안정적인 서비스를 만드는 백엔드 개발자입니다." },
+                        { type: "project", text: "대표 프로젝트 섹션" },
+                      ],
+                      aiEditPrompt: "hero 문구를 더 자신감 있게 바꾸고 프로젝트 섹션을 위로 올려줘.",
+                      editedAt: "2026-08-05T06:35:00.000Z",
+                    },
+                    isPublic: false,
+                    isShared: false,
+                    shareToken: null,
+                    sharedAt: null,
+                    createdAt: "2026-08-05T06:00:00.000Z",
+                    updatedAt: "2026-08-05T06:35:00.000Z",
+                  },
+                },
+              },
+            },
           },
           "400": {
             $ref: "#/components/responses/ValidationError",
@@ -923,12 +1397,67 @@ const swaggerSpec = {
             name: "portfolioId",
             in: "path",
             required: true,
+            description: "버전 목록을 조회할 포트폴리오 ID",
             schema: { type: "integer", example: 2 },
           },
         ],
         responses: {
           "200": {
             description: "포트폴리오 버전 목록 조회 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/PortfolioVersionListResponse",
+                },
+                example: {
+                  message: "포트폴리오 버전 목록 조회 성공",
+                  versions: [
+                    {
+                      id: 3,
+                      portfolioId: 2,
+                      versionNumber: 3,
+                      contentJson: {
+                        title: "두 번째 포트폴리오",
+                        jobRole: "Backend Developer",
+                        careerLevel: "Junior",
+                        directionPrompt: "미니멀하고 프로젝트 중심의 포트폴리오로 만들고 싶어요.",
+                        externalLinks: [],
+                        currentContentJson: {
+                          blocks: [
+                            { type: "hero", text: "안녕하세요. 백엔드 개발자입니다." },
+                          ],
+                        },
+                        isPublic: false,
+                      },
+                      changeType: "MANUAL_EDIT",
+                      changePrompt: null,
+                      createdAt: "2026-08-05T06:40:00.000Z",
+                    },
+                    {
+                      id: 2,
+                      portfolioId: 2,
+                      versionNumber: 2,
+                      contentJson: {
+                        title: "두 번째 포트폴리오",
+                        jobRole: "Backend Developer",
+                        careerLevel: "Junior",
+                        directionPrompt: "미니멀하고 프로젝트 중심의 포트폴리오로 만들고 싶어요.",
+                        externalLinks: [],
+                        currentContentJson: {
+                          blocks: [
+                            { type: "hero", text: "AI가 생성한 포트폴리오 초안입니다." },
+                          ],
+                        },
+                        isPublic: false,
+                      },
+                      changeType: "INITIAL_GENERATION",
+                      changePrompt: null,
+                      createdAt: "2026-08-05T06:30:00.000Z",
+                    },
+                  ],
+                },
+              },
+            },
           },
           "401": {
             $ref: "#/components/responses/UnauthorizedError",
@@ -953,18 +1482,51 @@ const swaggerSpec = {
             name: "portfolioId",
             in: "path",
             required: true,
+            description: "버전이 속한 포트폴리오 ID",
             schema: { type: "integer", example: 2 },
           },
           {
             name: "versionId",
             in: "path",
             required: true,
+            description: "조회할 버전 ID",
             schema: { type: "integer", example: 3 },
           },
         ],
         responses: {
           "200": {
             description: "포트폴리오 버전 상세 조회 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/PortfolioVersionResponse",
+                },
+                example: {
+                  message: "포트폴리오 버전 상세 조회 성공",
+                  version: {
+                    id: 3,
+                    portfolioId: 2,
+                    versionNumber: 3,
+                    contentJson: {
+                      title: "두 번째 포트폴리오",
+                      jobRole: "Backend Developer",
+                      careerLevel: "Junior",
+                      directionPrompt: "미니멀하고 프로젝트 중심의 포트폴리오로 만들고 싶어요.",
+                      externalLinks: [],
+                      currentContentJson: {
+                        blocks: [
+                          { type: "hero", text: "안녕하세요. 백엔드 개발자입니다." },
+                        ],
+                      },
+                      isPublic: false,
+                    },
+                    changeType: "MANUAL_EDIT",
+                    changePrompt: null,
+                    createdAt: "2026-08-05T06:40:00.000Z",
+                  },
+                },
+              },
+            },
           },
           "401": {
             $ref: "#/components/responses/UnauthorizedError",
@@ -986,6 +1548,38 @@ const swaggerSpec = {
         responses: {
           "200": {
             description: "공개 포트폴리오 목록 조회 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/PortfolioListResponse",
+                },
+                example: {
+                  message: "공개 포트폴리오 목록 조회 성공",
+                  portfolios: [
+                    {
+                      id: 1,
+                      userId: 1,
+                      title: "나의 첫 포트폴리오",
+                      jobRole: "Backend Developer",
+                      careerLevel: "Junior",
+                      directionPrompt: "미니멀하고 프로젝트 중심의 포트폴리오로 만들고 싶어요.",
+                      externalLinks: [],
+                      currentContentJson: {
+                        blocks: [
+                          { type: "hero", text: "안녕하세요. 백엔드 개발자입니다." },
+                        ],
+                      },
+                      isPublic: true,
+                      isShared: false,
+                      shareToken: null,
+                      sharedAt: null,
+                      createdAt: "2026-08-05T06:00:00.000Z",
+                      updatedAt: "2026-08-05T06:20:00.000Z",
+                    },
+                  ],
+                },
+              },
+            },
           },
           "500": {
             $ref: "#/components/responses/InternalServerError",
@@ -1003,12 +1597,43 @@ const swaggerSpec = {
             name: "portfolioId",
             in: "path",
             required: true,
+            description: "조회할 공개 포트폴리오 ID",
             schema: { type: "integer", example: 1 },
           },
         ],
         responses: {
           "200": {
             description: "공개 포트폴리오 상세 조회 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/PortfolioResponse",
+                },
+                example: {
+                  message: "공개 포트폴리오 상세 조회 성공",
+                  portfolio: {
+                    id: 1,
+                    userId: 1,
+                    title: "나의 첫 포트폴리오",
+                    jobRole: "Backend Developer",
+                    careerLevel: "Junior",
+                    directionPrompt: "미니멀하고 프로젝트 중심의 포트폴리오로 만들고 싶어요.",
+                    externalLinks: [],
+                    currentContentJson: {
+                      blocks: [
+                        { type: "hero", text: "안녕하세요. 백엔드 개발자입니다." },
+                      ],
+                    },
+                    isPublic: true,
+                    isShared: false,
+                    shareToken: null,
+                    sharedAt: null,
+                    createdAt: "2026-08-05T06:00:00.000Z",
+                    updatedAt: "2026-08-05T06:20:00.000Z",
+                  },
+                },
+              },
+            },
           },
           "400": {
             $ref: "#/components/responses/ValidationError",
@@ -1032,6 +1657,7 @@ const swaggerSpec = {
             name: "shareToken",
             in: "path",
             required: true,
+            description: "공유 포트폴리오 조회용 토큰",
             schema: {
               type: "string",
               example: "cace5987-f901-4840-bc49-f6c897e1e446",
@@ -1041,6 +1667,36 @@ const swaggerSpec = {
         responses: {
           "200": {
             description: "공유 포트폴리오 조회 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/PortfolioResponse",
+                },
+                example: {
+                  message: "공유 포트폴리오 조회 성공",
+                  portfolio: {
+                    id: 1,
+                    userId: 1,
+                    title: "나의 첫 포트폴리오",
+                    jobRole: "Backend Developer",
+                    careerLevel: "Junior",
+                    directionPrompt: "미니멀하고 프로젝트 중심의 포트폴리오로 만들고 싶어요.",
+                    externalLinks: [],
+                    currentContentJson: {
+                      blocks: [
+                        { type: "hero", text: "안녕하세요. 백엔드 개발자입니다." },
+                      ],
+                    },
+                    isPublic: false,
+                    isShared: true,
+                    shareToken: "cace5987-f901-4840-bc49-f6c897e1e446",
+                    sharedAt: "2026-08-05T06:25:00.000Z",
+                    createdAt: "2026-08-05T06:00:00.000Z",
+                    updatedAt: "2026-08-05T06:25:00.000Z",
+                  },
+                },
+              },
+            },
           },
           "404": {
             $ref: "#/components/responses/NotFoundError",
@@ -1061,12 +1717,41 @@ const swaggerSpec = {
             name: "portfolioId",
             in: "path",
             required: true,
+            description: "댓글 목록을 조회할 공개 포트폴리오 ID",
             schema: { type: "integer", example: 1 },
           },
         ],
         responses: {
           "200": {
             description: "댓글 목록 조회 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/CommentListResponse",
+                },
+                example: {
+                  message: "댓글 목록 조회 성공",
+                  comments: [
+                    {
+                      id: 1,
+                      portfolioId: 1,
+                      authorId: 2,
+                      content: "포트폴리오가 깔끔해서 보기 좋아요.",
+                      createdAt: "2026-08-05T06:50:00.000Z",
+                      updatedAt: "2026-08-05T06:50:00.000Z",
+                    },
+                    {
+                      id: 2,
+                      portfolioId: 1,
+                      authorId: 3,
+                      content: "프로젝트 설명이 명확해서 좋았습니다.",
+                      createdAt: "2026-08-05T06:55:00.000Z",
+                      updatedAt: "2026-08-05T06:55:00.000Z",
+                    },
+                  ],
+                },
+              },
+            },
           },
           "400": {
             $ref: "#/components/responses/ValidationError",
@@ -1088,6 +1773,7 @@ const swaggerSpec = {
             name: "portfolioId",
             in: "path",
             required: true,
+            description: "댓글을 작성할 공개 포트폴리오 ID",
             schema: { type: "integer", example: 1 },
           },
         ],
@@ -1098,12 +1784,33 @@ const swaggerSpec = {
               schema: {
                 $ref: "#/components/schemas/CommentRequest",
               },
+              example: {
+                content: "포트폴리오가 깔끔해서 보기 좋아요.",
+              },
             },
           },
         },
         responses: {
           "201": {
             description: "댓글 작성 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/CommentResponse",
+                },
+                example: {
+                  message: "댓글 작성 성공",
+                  comment: {
+                    id: 2,
+                    portfolioId: 1,
+                    authorId: 1,
+                    content: "포트폴리오가 깔끔해서 보기 좋아요.",
+                    createdAt: "2026-08-05T06:55:00.000Z",
+                    updatedAt: "2026-08-05T06:55:00.000Z",
+                  },
+                },
+              },
+            },
           },
           "400": {
             $ref: "#/components/responses/ValidationError",
@@ -1131,6 +1838,7 @@ const swaggerSpec = {
             name: "commentId",
             in: "path",
             required: true,
+            description: "수정할 댓글 ID",
             schema: { type: "integer", example: 2 },
           },
         ],
@@ -1141,12 +1849,33 @@ const swaggerSpec = {
               schema: {
                 $ref: "#/components/schemas/CommentRequest",
               },
+              example: {
+                content: "수정된 댓글입니다.",
+              },
             },
           },
         },
         responses: {
           "200": {
             description: "댓글 수정 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/CommentResponse",
+                },
+                example: {
+                  message: "댓글 수정 성공",
+                  comment: {
+                    id: 2,
+                    portfolioId: 1,
+                    authorId: 1,
+                    content: "수정된 댓글입니다.",
+                    createdAt: "2026-08-05T06:55:00.000Z",
+                    updatedAt: "2026-08-05T07:00:00.000Z",
+                  },
+                },
+              },
+            },
           },
           "400": {
             $ref: "#/components/responses/ValidationError",
@@ -1174,12 +1903,31 @@ const swaggerSpec = {
             name: "commentId",
             in: "path",
             required: true,
+            description: "삭제할 댓글 ID",
             schema: { type: "integer", example: 2 },
           },
         ],
         responses: {
           "200": {
             description: "댓글 삭제 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/CommentResponse",
+                },
+                example: {
+                  message: "댓글 삭제 성공",
+                  comment: {
+                    id: 2,
+                    portfolioId: 1,
+                    authorId: 1,
+                    content: "수정된 댓글입니다.",
+                    createdAt: "2026-08-05T06:55:00.000Z",
+                    updatedAt: "2026-08-05T07:00:00.000Z",
+                  },
+                },
+              },
+            },
           },
           "401": {
             $ref: "#/components/responses/UnauthorizedError",
