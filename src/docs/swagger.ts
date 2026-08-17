@@ -666,43 +666,6 @@ const swaggerSpec = {
       },
     },
 
-    "/auth/me": {
-      get: {
-        tags: ["Auth"],
-        summary: "내 정보 조회",
-        security: [{ bearerAuth: [] }],
-        responses: {
-          "200": {
-            description: "내 정보 조회 성공",
-            content: {
-              "application/json": {
-                schema: {
-                  $ref: "#/components/schemas/UserResponse",
-                },
-                example: {
-                  message: "내 정보 조회 성공",
-                  user: {
-                    id: 1,
-                    email: "test@example.com",
-                    nickname: "testuser",
-                  },
-                },
-              },
-            },
-          },
-          "401": {
-            $ref: "#/components/responses/UnauthorizedError",
-          },
-          "404": {
-            $ref: "#/components/responses/NotFoundError",
-          },
-          "500": {
-            $ref: "#/components/responses/InternalServerError",
-          },
-        },
-      },
-    },
-
     "/users/me": {
       patch: {
         tags: ["User"],
