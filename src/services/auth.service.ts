@@ -148,3 +148,11 @@ export const reissue = (refreshToken: string | undefined) => {
     refreshToken: newRefreshToken,
   };
 };
+
+// 로그아웃
+export const logout = (refreshToken: string | undefined) => {
+  if (!refreshToken) {
+    throw new AppError(401, "인증 정보가 없습니다.", "UNAUTHORIZED");
+  }
+
+};

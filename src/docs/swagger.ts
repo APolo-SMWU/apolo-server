@@ -779,6 +779,51 @@ const swaggerSpec = {
       },
     },
 
+    "/auth/logout": {
+      post: {
+        tags: ["Auth"],
+        summary: "로그아웃",
+        description:
+          "refreshToken 쿠키를 만료 처리한다. 프론트는 저장 중인 accessToken을 별도로 삭제해야 한다.",
+        responses: {
+          "200": {
+            description: "로그아웃 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "로그아웃되었습니다." },
+                  },
+                },
+                example: {
+                  message: "로그아웃되었습니다.",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "refreshToken 쿠키 없음",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorResponse",
+                },
+                example: {
+                  message: "인증 정보가 없습니다.",
+                  errorCode: "UNAUTHORIZED",
+                  errors: [],
+                },
+              },
+            },
+          },
+          "500": {
+            $ref: "#/components/responses/InternalServerError",
+          },
+        },
+      },
+    },
+
     "/users/me": {
       patch: {
         tags: ["User"],

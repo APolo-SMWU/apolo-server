@@ -1,16 +1,23 @@
 import { Request, Response } from "express";
-import { login, reissue, signup } from "../services/auth.service";
+import { login, logout, reissue, signup } from "../services/auth.service";
 import { validateRequest } from "../utils/validate-request";
 import { loginSchema, signupSchema } from "../schemas/auth.schema";
 
+const getRefreshTokenCookieOptions = () => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax" as const,
+});
+
 const setRefreshTokenCookie = (res: Response, refreshToken: string) => {
-  const isProd = process.env.NODE_ENV === "production";
   res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: "lax",
+    ...getRefreshTokenCookieOptions(),
     maxAge: 14 * 24 * 60 * 60 * 1000,
   });
+};
+
+const clearRefreshTokenCookie = (res: Response) => {
+  res.clearCookie("refreshToken", getRefreshTokenCookieOptions());
 };
 
 export const signupUser = async (req: Request, res: Response) => {
@@ -50,5 +57,15 @@ export const reissueToken = async (req: Request, res: Response) => {
   res.status(200).json({
     message: "액세스 토큰이 재발급되었습니다.",
     ...result,
+  });
+};
+
+export const logoutUser = (req: Request, res: Response) => {
+  logout(req.cookies?.refreshToken);
+
+  clearRefreshTokenCookie(res);
+
+  res.status(200).json({
+    message: "로그아웃되었습니다.",
   });
 };
