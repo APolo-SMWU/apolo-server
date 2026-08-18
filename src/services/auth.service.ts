@@ -52,6 +52,8 @@ export const signup = async (
   }
 }
 
+const ACCESS_TOKEN_EXPIRES_IN_SECONDS = 3600;
+
 // 로그인
 export const login = async (email: string, password: string) => {
   // 1. 이메일로 유저 찾기
@@ -78,12 +80,13 @@ export const login = async (email: string, password: string) => {
     },
     process.env.JWT_SECRET!,
     {
-      expiresIn: "1h",
+      expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS,
     }
   );
 
   // 4. 반환
   return {
     accessToken: token,
+    expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS,
   };
 };

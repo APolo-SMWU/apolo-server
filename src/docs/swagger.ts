@@ -100,6 +100,7 @@ const swaggerSpec = {
         properties: {
           message: { type: "string", example: "로그인에 성공했습니다." },
           accessToken: { type: "string", example: "jwt-token-example" },
+          expiresIn: { type: "integer", example: 3600 },
         },
       },
 
@@ -704,6 +705,7 @@ const swaggerSpec = {
                 example: {
                   message: "로그인에 성공했습니다.",
                   accessToken: "jwt-token-example",
+                  expiresIn: 3600,
                 },
               },
             },
