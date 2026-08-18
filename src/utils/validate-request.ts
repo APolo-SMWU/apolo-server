@@ -12,8 +12,8 @@ export const validateRequest = <T>(schema: ZodSchema<T>, data: unknown) => {
 
     throw new AppError(
       400,
-      "잘못된 요청입니다.",
-      "VALIDATION_ERROR",
+      "입력값이 올바르지 않습니다.",
+      "INVALID_INPUT",
       errors
     );
   }
