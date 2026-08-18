@@ -53,6 +53,7 @@ export const signup = async (
 }
 
 const ACCESS_TOKEN_EXPIRES_IN_SECONDS = 3600;
+const REFRESH_TOKEN_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 14; // 14일
 
 // 로그인
 export const login = async (email: string, password: string) => {
@@ -72,21 +73,33 @@ export const login = async (email: string, password: string) => {
     throw new AppError(401, "이메일 또는 비밀번호가 일치하지 않습니다.", "INVALID_CREDENTIALS");
   }
 
-  // 3. JWT 발급
-  const token = jwt.sign(
+  // 3. accessToken 발급
+  const accessToken = jwt.sign(
     {
       userId: user.id,
       email: user.email,
     },
-    process.env.JWT_SECRET!,
+    process.env.ACCESS_TOKEN_SECRET!,
     {
       expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS,
     }
   );
 
-  // 4. 반환
+  // 4. refreshToken 발급
+  const refreshToken = jwt.sign(
+    {
+      userId: user.id,
+    },
+    process.env.REFRESH_TOKEN_SECRET!,
+    {
+      expiresIn: REFRESH_TOKEN_EXPIRES_IN_SECONDS,
+    }
+  );
+
+  // 5. 반환
   return {
-    accessToken: token,
+    accessToken,
     expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS,
+    refreshToken,
   };
 };

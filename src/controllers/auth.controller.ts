@@ -20,7 +20,15 @@ export const signupUser = async (req: Request, res: Response) => {
 export const loginUser = async (req: Request, res: Response) => {
   const { email, password } = validateRequest(loginSchema, req.body);
 
-  const result = await login(email, password);
+  const { refreshToken, ...result } = await login(email, password);
+
+  const isProd = process.env.NODE_ENV === "production";
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: "lax",
+    maxAge: 14 * 24 * 60 * 60 * 1000,
+  });
 
   res.status(200).json({
     message: "로그인에 성공했습니다.",

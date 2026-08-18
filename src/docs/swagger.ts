@@ -696,7 +696,7 @@ const swaggerSpec = {
         },
         responses: {
           "200": {
-            description: "로그인 성공",
+            description: "로그인 성공 (refreshToken은 httpOnly 쿠키로 함께 발급됨)",
             content: {
               "application/json": {
                 schema: {
