@@ -735,6 +735,50 @@ const swaggerSpec = {
       },
     },
 
+    "/auth/reissue": {
+      post: {
+        tags: ["Auth"],
+        summary: "액세스 토큰 재발급",
+        description:
+          "쿠키에 담긴 refreshToken을 검증해 새 accessToken을 발급한다. 요청 body는 없으며, refreshToken 쿠키만으로 동작한다. 재발급 시 refreshToken도 함께 회전(재발급)된다.",
+        responses: {
+          "200": {
+            description: "재발급 성공 (refreshToken은 httpOnly 쿠키로 함께 갱신됨)",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/LoginResponse",
+                },
+                example: {
+                  message: "액세스 토큰이 재발급되었습니다.",
+                  accessToken: "new-jwt-access-token-example",
+                  expiresIn: 3600,
+                },
+              },
+            },
+          },
+          "401": {
+            description: "유효하지 않은 리프레시 토큰",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorResponse",
+                },
+                example: {
+                  message: "유효하지 않은 리프레시 토큰입니다.",
+                  errorCode: "INVALID_REFRESH_TOKEN",
+                  errors: [],
+                },
+              },
+            },
+          },
+          "500": {
+            $ref: "#/components/responses/InternalServerError",
+          },
+        },
+      },
+    },
+
     "/users/me": {
       patch: {
         tags: ["User"],

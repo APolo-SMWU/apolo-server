@@ -103,3 +103,48 @@ export const login = async (email: string, password: string) => {
     refreshToken,
   };
 };
+
+// 액세스 토큰 재발급
+export const reissue = (refreshToken: string | undefined) => {
+  if (!refreshToken) {
+    throw new AppError(401, "유효하지 않은 리프레시 토큰입니다.", "INVALID_REFRESH_TOKEN");
+  }
+
+  let payload: { userId: number };
+  try {
+    payload = jwt.verify(
+      refreshToken,
+      process.env.REFRESH_TOKEN_SECRET!
+    ) as { userId: number };
+  } catch (error) {
+    throw new AppError(401, "유효하지 않은 리프레시 토큰입니다.", "INVALID_REFRESH_TOKEN");
+  }
+
+  // 1. accessToken 재발급
+  const accessToken = jwt.sign(
+    {
+      userId: payload.userId,
+    },
+    process.env.ACCESS_TOKEN_SECRET!,
+    {
+      expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS,
+    }
+  );
+
+  // 2. refreshToken 회전(재발급) - 사용할 때마다 만료를 14일로 연장
+  const newRefreshToken = jwt.sign(
+    {
+      userId: payload.userId,
+    },
+    process.env.REFRESH_TOKEN_SECRET!,
+    {
+      expiresIn: REFRESH_TOKEN_EXPIRES_IN_SECONDS,
+    }
+  );
+
+  return {
+    accessToken,
+    expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS,
+    refreshToken: newRefreshToken,
+  };
+};
