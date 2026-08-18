@@ -22,7 +22,7 @@ export const signup = async (
   });
 
   if (existingUserByEmail) {
-    throw new AppError(400, "이미 사용 중인 이메일입니다.", "CONFLICT");
+    throw new AppError(409, "이미 사용 중인 이메일입니다.", "EMAIL_ALREADY_EXISTS");
   }
 
   const existingUserByNickname = await prisma.user.findUnique({
@@ -30,7 +30,7 @@ export const signup = async (
   });
 
   if (existingUserByNickname) {
-    throw new AppError(400, "이미 사용 중인 닉네임입니다.", "CONFLICT");
+    throw new AppError(409, "이미 사용 중인 닉네임입니다.", "NICKNAME_ALREADY_EXISTS");
   }
 
   // 비밀번호 해싱
@@ -52,6 +52,8 @@ export const signup = async (
   }
 }
 
+const ACCESS_TOKEN_EXPIRES_IN_SECONDS = 3600;
+
 // 로그인
 export const login = async (email: string, password: string) => {
   // 1. 이메일로 유저 찾기
@@ -60,14 +62,14 @@ export const login = async (email: string, password: string) => {
   });
 
   if (!user) {
-    throw new AppError(401, "존재하지 않는 이메일입니다.", "UNAUTHORIZED");
+    throw new AppError(401, "이메일 또는 비밀번호가 일치하지 않습니다.", "INVALID_CREDENTIALS");
   }
 
   // 2. 비밀번호 비교
   const isPasswordValid = await bcrypt.compare(password, user.password);
 
   if (!isPasswordValid) {
-    throw new AppError(401, "비밀번호가 일치하지 않습니다.", "UNAUTHORIZED");
+    throw new AppError(401, "이메일 또는 비밀번호가 일치하지 않습니다.", "INVALID_CREDENTIALS");
   }
 
   // 3. JWT 발급
@@ -78,28 +80,13 @@ export const login = async (email: string, password: string) => {
     },
     process.env.JWT_SECRET!,
     {
-      expiresIn: "1h",
+      expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS,
     }
   );
 
   // 4. 반환
   return {
     accessToken: token,
-  };
-};
-
-export const getMe = async (userId: number) => {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-  });
-
-  if (!user) {
-    throw new AppError(404, "사용자를 찾을 수 없습니다.", "NOT_FOUND");
-  }
-
-  return {
-    id: user.id,
-    email: user.email,
-    nickname: user.nickname,
+    expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS,
   };
 };

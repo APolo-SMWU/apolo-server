@@ -20,22 +20,22 @@ export const errorHandler = (
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({
       message: err.message,
-      code: err.code,
+      errorCode: err.errorCode,
       errors: err.errors,
     });
   }
 
   if (err instanceof ZodError) {
     return res.status(400).json({
-      message: "잘못된 요청입니다.",
-      code: "VALIDATION_ERROR",
+      message: "입력값이 올바르지 않습니다.",
+      errorCode: "INVALID_INPUT",
       errors: formatZodErrors(err),
     });
   }
 
   return res.status(500).json({
     message: "서버 내부 오류가 발생했습니다.",
-    code: "INTERNAL_SERVER_ERROR",
+    errorCode: "INTERNAL_SERVER_ERROR",
     errors: [],
   });
 };

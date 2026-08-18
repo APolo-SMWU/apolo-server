@@ -38,11 +38,11 @@ const swaggerSpec = {
         properties: {
           message: {
             type: "string",
-            example: "잘못된 요청입니다.",
+            example: "입력값이 올바르지 않습니다.",
           },
-          code: {
+          errorCode: {
             type: "string",
-            example: "VALIDATION_ERROR",
+            example: "INVALID_INPUT",
           },
           errors: {
             type: "array",
@@ -100,6 +100,7 @@ const swaggerSpec = {
         properties: {
           message: { type: "string", example: "로그인에 성공했습니다." },
           accessToken: { type: "string", example: "jwt-token-example" },
+          expiresIn: { type: "integer", example: 3600 },
         },
       },
 
@@ -478,8 +479,8 @@ const swaggerSpec = {
               $ref: "#/components/schemas/ErrorResponse",
             },
             example: {
-              message: "잘못된 요청입니다.",
-              code: "VALIDATION_ERROR",
+              message: "입력값이 올바르지 않습니다.",
+              errorCode: "INVALID_INPUT",
               errors: [
                 {
                   field: "email",
@@ -499,7 +500,7 @@ const swaggerSpec = {
             },
             example: {
               message: "유효하지 않은 토큰입니다.",
-              code: "UNAUTHORIZED",
+              errorCode: "UNAUTHORIZED",
               errors: [],
             },
           },
@@ -514,7 +515,7 @@ const swaggerSpec = {
             },
             example: {
               message: "본인이 작성한 댓글만 수정할 수 있습니다.",
-              code: "FORBIDDEN",
+              errorCode: "FORBIDDEN",
               errors: [],
             },
           },
@@ -529,7 +530,7 @@ const swaggerSpec = {
             },
             example: {
               message: "포트폴리오를 찾을 수 없습니다.",
-              code: "NOT_FOUND",
+              errorCode: "NOT_FOUND",
               errors: [],
             },
           },
@@ -544,7 +545,7 @@ const swaggerSpec = {
             },
             example: {
               message: "이미 사용 중인 이메일입니다.",
-              code: "CONFLICT",
+              errorCode: "CONFLICT",
               errors: [],
             },
           },
@@ -559,7 +560,7 @@ const swaggerSpec = {
             },
             example: {
               message: "서버 내부 오류가 발생했습니다.",
-              code: "INTERNAL_SERVER_ERROR",
+              errorCode: "INTERNAL_SERVER_ERROR",
               errors: [],
             },
           },
@@ -608,10 +609,65 @@ const swaggerSpec = {
             },
           },
           "400": {
-            $ref: "#/components/responses/ValidationError",
+            description: "입력값 검증 실패 또는 비밀번호 불일치",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorResponse",
+                },
+                examples: {
+                  검증실패: {
+                    summary: "입력값 검증 실패",
+                    value: {
+                      message: "입력값이 올바르지 않습니다.",
+                      errorCode: "INVALID_INPUT",
+                      errors: [
+                        {
+                          field: "email",
+                          message: "올바른 이메일 형식이 아닙니다.",
+                        },
+                      ],
+                    },
+                  },
+                  비밀번호불일치: {
+                    summary: "비밀번호와 비밀번호 확인 불일치",
+                    value: {
+                      message: "비밀번호가 일치하지 않습니다.",
+                      errorCode: "BAD_REQUEST",
+                      errors: [],
+                    },
+                  },
+                },
+              },
+            },
           },
           "409": {
-            $ref: "#/components/responses/ConflictError",
+            description: "이메일 또는 닉네임 중복",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorResponse",
+                },
+                examples: {
+                  이메일중복: {
+                    summary: "이메일 중복",
+                    value: {
+                      message: "이미 사용 중인 이메일입니다.",
+                      errorCode: "EMAIL_ALREADY_EXISTS",
+                      errors: [],
+                    },
+                  },
+                  닉네임중복: {
+                    summary: "닉네임 중복",
+                    value: {
+                      message: "이미 사용 중인 닉네임입니다.",
+                      errorCode: "NICKNAME_ALREADY_EXISTS",
+                      errors: [],
+                    },
+                  },
+                },
+              },
+            },
           },
           "500": {
             $ref: "#/components/responses/InternalServerError",
@@ -649,6 +705,7 @@ const swaggerSpec = {
                 example: {
                   message: "로그인에 성공했습니다.",
                   accessToken: "jwt-token-example",
+                  expiresIn: 3600,
                 },
               },
             },
@@ -657,44 +714,19 @@ const swaggerSpec = {
             $ref: "#/components/responses/ValidationError",
           },
           "401": {
-            $ref: "#/components/responses/UnauthorizedError",
-          },
-          "500": {
-            $ref: "#/components/responses/InternalServerError",
-          },
-        },
-      },
-    },
-
-    "/auth/me": {
-      get: {
-        tags: ["Auth"],
-        summary: "내 정보 조회",
-        security: [{ bearerAuth: [] }],
-        responses: {
-          "200": {
-            description: "내 정보 조회 성공",
+            description: "이메일 또는 비밀번호 불일치",
             content: {
               "application/json": {
                 schema: {
-                  $ref: "#/components/schemas/UserResponse",
+                  $ref: "#/components/schemas/ErrorResponse",
                 },
                 example: {
-                  message: "내 정보 조회 성공",
-                  user: {
-                    id: 1,
-                    email: "test@example.com",
-                    nickname: "testuser",
-                  },
+                  message: "이메일 또는 비밀번호가 일치하지 않습니다.",
+                  errorCode: "INVALID_CREDENTIALS",
+                  errors: [],
                 },
               },
             },
-          },
-          "401": {
-            $ref: "#/components/responses/UnauthorizedError",
-          },
-          "404": {
-            $ref: "#/components/responses/NotFoundError",
           },
           "500": {
             $ref: "#/components/responses/InternalServerError",
