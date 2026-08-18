@@ -696,7 +696,7 @@ const swaggerSpec = {
         },
         responses: {
           "200": {
-            description: "로그인 성공",
+            description: "로그인 성공 (refreshToken은 httpOnly 쿠키로 함께 발급됨)",
             content: {
               "application/json": {
                 schema: {
@@ -723,6 +723,95 @@ const swaggerSpec = {
                 example: {
                   message: "이메일 또는 비밀번호가 일치하지 않습니다.",
                   errorCode: "INVALID_CREDENTIALS",
+                  errors: [],
+                },
+              },
+            },
+          },
+          "500": {
+            $ref: "#/components/responses/InternalServerError",
+          },
+        },
+      },
+    },
+
+    "/auth/reissue": {
+      post: {
+        tags: ["Auth"],
+        summary: "액세스 토큰 재발급",
+        description:
+          "쿠키에 담긴 refreshToken을 검증해 새 accessToken을 발급한다. 요청 body는 없으며, refreshToken 쿠키만으로 동작한다. 재발급 시 refreshToken도 함께 회전(재발급)된다.",
+        responses: {
+          "200": {
+            description: "재발급 성공 (refreshToken은 httpOnly 쿠키로 함께 갱신됨)",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/LoginResponse",
+                },
+                example: {
+                  message: "액세스 토큰이 재발급되었습니다.",
+                  accessToken: "new-jwt-access-token-example",
+                  expiresIn: 3600,
+                },
+              },
+            },
+          },
+          "401": {
+            description: "유효하지 않은 리프레시 토큰",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorResponse",
+                },
+                example: {
+                  message: "유효하지 않은 리프레시 토큰입니다.",
+                  errorCode: "INVALID_REFRESH_TOKEN",
+                  errors: [],
+                },
+              },
+            },
+          },
+          "500": {
+            $ref: "#/components/responses/InternalServerError",
+          },
+        },
+      },
+    },
+
+    "/auth/logout": {
+      post: {
+        tags: ["Auth"],
+        summary: "로그아웃",
+        description:
+          "refreshToken 쿠키를 만료 처리한다. 프론트는 저장 중인 accessToken을 별도로 삭제해야 한다.",
+        responses: {
+          "200": {
+            description: "로그아웃 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "로그아웃되었습니다." },
+                  },
+                },
+                example: {
+                  message: "로그아웃되었습니다.",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "refreshToken 쿠키 없음",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorResponse",
+                },
+                example: {
+                  message: "인증 정보가 없습니다.",
+                  errorCode: "UNAUTHORIZED",
                   errors: [],
                 },
               },

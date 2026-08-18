@@ -53,6 +53,7 @@ export const signup = async (
 }
 
 const ACCESS_TOKEN_EXPIRES_IN_SECONDS = 3600;
+const REFRESH_TOKEN_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 14; // 14일
 
 // 로그인
 export const login = async (email: string, password: string) => {
@@ -72,21 +73,86 @@ export const login = async (email: string, password: string) => {
     throw new AppError(401, "이메일 또는 비밀번호가 일치하지 않습니다.", "INVALID_CREDENTIALS");
   }
 
-  // 3. JWT 발급
-  const token = jwt.sign(
+  // 3. accessToken 발급
+  const accessToken = jwt.sign(
     {
       userId: user.id,
       email: user.email,
     },
-    process.env.JWT_SECRET!,
+    process.env.ACCESS_TOKEN_SECRET!,
     {
       expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS,
     }
   );
 
-  // 4. 반환
+  // 4. refreshToken 발급
+  const refreshToken = jwt.sign(
+    {
+      userId: user.id,
+    },
+    process.env.REFRESH_TOKEN_SECRET!,
+    {
+      expiresIn: REFRESH_TOKEN_EXPIRES_IN_SECONDS,
+    }
+  );
+
+  // 5. 반환
   return {
-    accessToken: token,
+    accessToken,
     expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS,
+    refreshToken,
   };
+};
+
+// 액세스 토큰 재발급
+export const reissue = (refreshToken: string | undefined) => {
+  if (!refreshToken) {
+    throw new AppError(401, "유효하지 않은 리프레시 토큰입니다.", "INVALID_REFRESH_TOKEN");
+  }
+
+  let payload: { userId: number };
+  try {
+    payload = jwt.verify(
+      refreshToken,
+      process.env.REFRESH_TOKEN_SECRET!
+    ) as { userId: number };
+  } catch (error) {
+    throw new AppError(401, "유효하지 않은 리프레시 토큰입니다.", "INVALID_REFRESH_TOKEN");
+  }
+
+  // 1. accessToken 재발급
+  const accessToken = jwt.sign(
+    {
+      userId: payload.userId,
+    },
+    process.env.ACCESS_TOKEN_SECRET!,
+    {
+      expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS,
+    }
+  );
+
+  // 2. refreshToken 회전(재발급) - 사용할 때마다 만료를 14일로 연장
+  const newRefreshToken = jwt.sign(
+    {
+      userId: payload.userId,
+    },
+    process.env.REFRESH_TOKEN_SECRET!,
+    {
+      expiresIn: REFRESH_TOKEN_EXPIRES_IN_SECONDS,
+    }
+  );
+
+  return {
+    accessToken,
+    expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS,
+    refreshToken: newRefreshToken,
+  };
+};
+
+// 로그아웃
+export const logout = (refreshToken: string | undefined) => {
+  if (!refreshToken) {
+    throw new AppError(401, "인증 정보가 없습니다.", "UNAUTHORIZED");
+  }
+
 };
