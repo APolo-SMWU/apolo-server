@@ -21,6 +21,16 @@ model User {
   email      String    @unique
   name       String
   password   String
+  role       String?
+  phone      String?
+  github     String?
+  company    String?
+  jobTitle   String?
+  tel        String?
+  university String?
+  department String?
+  major      String?
+  onboardingCompleted Boolean @default(false)
   portfolios Portfolio[]
   comments   Comment[]
   createdAt  DateTime  @default(now())
