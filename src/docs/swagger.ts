@@ -71,16 +71,16 @@ const swaggerSpec = {
         properties: {
           id: { type: "integer", example: 1 },
           email: { type: "string", example: "test@example.com" },
-          nickname: { type: "string", example: "testuser" },
+          name: { type: "string", example: "홍길동" },
         },
       },
 
       SignupRequest: {
         type: "object",
-        required: ["email", "nickname", "password", "passwordCheck"],
+        required: ["email", "name", "password", "passwordCheck"],
         properties: {
           email: { type: "string", example: "test@example.com" },
-          nickname: { type: "string", example: "testuser" },
+          name: { type: "string", example: "홍길동" },
           password: { type: "string", example: "password123" },
           passwordCheck: { type: "string", example: "password123" },
         },
@@ -454,9 +454,9 @@ const swaggerSpec = {
 
       UpdateProfileRequest: {
         type: "object",
-        required: ["nickname"],
+        required: ["name"],
         properties: {
-          nickname: { type: "string", example: "newNickname" },
+          name: { type: "string", example: "홍길동" },
         },
       },
 
@@ -582,7 +582,7 @@ const swaggerSpec = {
               },
               example: {
                 email: "test@example.com",
-                nickname: "testuser",
+                name: "홍길동",
                 password: "password123",
                 passwordCheck: "password123",
               },
@@ -602,7 +602,7 @@ const swaggerSpec = {
                   user: {
                     id: 1,
                     email: "test@example.com",
-                    nickname: "testuser",
+                    name: "홍길동",
                   },
                 },
               },
@@ -642,7 +642,7 @@ const swaggerSpec = {
             },
           },
           "409": {
-            description: "이메일 또는 닉네임 중복",
+            description: "이메일 중복",
             content: {
               "application/json": {
                 schema: {
@@ -654,14 +654,6 @@ const swaggerSpec = {
                     value: {
                       message: "이미 사용 중인 이메일입니다.",
                       errorCode: "EMAIL_ALREADY_EXISTS",
-                      errors: [],
-                    },
-                  },
-                  닉네임중복: {
-                    summary: "닉네임 중복",
-                    value: {
-                      message: "이미 사용 중인 닉네임입니다.",
-                      errorCode: "NICKNAME_ALREADY_EXISTS",
                       errors: [],
                     },
                   },
@@ -837,7 +829,7 @@ const swaggerSpec = {
                 $ref: "#/components/schemas/UpdateProfileRequest",
               },
               example: {
-                nickname: "newNickname",
+                name: "홍길동",
               },
             },
           },
@@ -855,7 +847,7 @@ const swaggerSpec = {
                   user: {
                     id: 1,
                     email: "test@example.com",
-                    nickname: "newNickname",
+                    name: "홍길동",
                   },
                 },
               },

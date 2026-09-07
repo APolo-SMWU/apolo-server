@@ -1,9 +1,9 @@
 import { z } from "zod";
 
 export const updateProfileSchema = z.object({
-  nickname: z
+  name: z
     .string()
-    .min(2, "닉네임은 2자 이상이어야 합니다."),
+    .min(2, "이름은 2자 이상이어야 합니다."),
 });
 
 export const updatePasswordSchema = z.object({

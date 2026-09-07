@@ -19,7 +19,7 @@ enum ChangeType {
 model User {
   id         Int       @id @default(autoincrement())
   email      String    @unique
-  nickname   String    @unique
+  name       String
   password   String
   portfolios Portfolio[]
   comments   Comment[]

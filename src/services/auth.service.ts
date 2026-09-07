@@ -6,7 +6,7 @@ import prisma from "../lib/prisma";
 // 회원가입
 export const signup = async (
   email: string,
-  nickname: string,
+  name: string,
   password: string,
   passwordCheck: string
 ) => {
@@ -16,21 +16,13 @@ export const signup = async (
     throw new AppError(400, "비밀번호가 일치하지 않습니다.", "BAD_REQUEST");
   }
 
-  // 이메일, 닉네임 중복 확인
+  // 이메일 중복 확인
   const existingUserByEmail = await prisma.user.findUnique({
     where: { email },
   });
 
   if (existingUserByEmail) {
     throw new AppError(409, "이미 사용 중인 이메일입니다.", "EMAIL_ALREADY_EXISTS");
-  }
-
-  const existingUserByNickname = await prisma.user.findUnique({
-    where: { nickname },
-  });
-
-  if (existingUserByNickname) {
-    throw new AppError(409, "이미 사용 중인 닉네임입니다.", "NICKNAME_ALREADY_EXISTS");
   }
 
   // 비밀번호 해싱
@@ -40,7 +32,7 @@ export const signup = async (
   const newUser = await prisma.user.create({
     data: {
       email,
-      nickname,
+      name,
       password: hashedPassword,
     },
   });
@@ -48,7 +40,7 @@ export const signup = async (
   return {
     id: newUser.id,
     email: newUser.email,
-    nickname: newUser.nickname,
+    name: newUser.name,
   }
 }
 
@@ -117,6 +109,10 @@ export const reissue = (refreshToken: string | undefined) => {
       process.env.REFRESH_TOKEN_SECRET!
     ) as { userId: number };
   } catch (error) {
+    throw new AppError(401, "유효하지 않은 리프레시 토큰입니다.", "INVALID_REFRESH_TOKEN");
+  }
+
+  if (!Number.isInteger(payload.userId) || payload.userId <= 0) {
     throw new AppError(401, "유효하지 않은 리프레시 토큰입니다.", "INVALID_REFRESH_TOKEN");
   }
 

@@ -12,7 +12,7 @@ export const updateMyProfileController = async (
   res: Response
 ) => {
   const userId = req.user?.userId;
-  const { nickname } = validateRequest(updateProfileSchema, req.body);
+  const { name } = validateRequest(updateProfileSchema, req.body);
 
   if (!userId) {
     return res.status(401).json({
@@ -20,7 +20,7 @@ export const updateMyProfileController = async (
     });
   }
 
-  const user = await updateMyProfile(userId, nickname);
+  const user = await updateMyProfile(userId, name);
 
   res.status(200).json({
     message: "내 프로필 수정 성공",

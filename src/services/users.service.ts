@@ -5,7 +5,7 @@ import prisma from "../lib/prisma";
 // 내 프로필 수정
 export const updateMyProfile = async (
   userId: number,
-  nickname: string
+  name: string
 ) => {
   const user = await prisma.user.findUnique({
     where: {
@@ -17,29 +17,19 @@ export const updateMyProfile = async (
     throw new AppError(404, "사용자를 찾을 수 없습니다.", "NOT_FOUND");
   }
 
-  const existingUserByNickname = await prisma.user.findUnique({
-    where: {
-      nickname,
-    },
-  });
-
-  if (existingUserByNickname && existingUserByNickname.id !== userId) {
-    throw new AppError(400, "이미 사용 중인 닉네임입니다.", "CONFLICT");
-  }
-
   const updatedUser = await prisma.user.update({
     where: {
       id: userId,
     },
     data: {
-      nickname,
+      name,
     },
   });
 
   return {
     id: updatedUser.id,
     email: updatedUser.email,
-    nickname: updatedUser.nickname,
+    name: updatedUser.name,
   };
 };
 
