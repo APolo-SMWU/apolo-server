@@ -21,12 +21,12 @@ const clearRefreshTokenCookie = (res: Response) => {
 };
 
 export const signupUser = async (req: Request, res: Response) => {
-  const { email, nickname, password, passwordCheck } = validateRequest(
+  const { email, name, password, passwordCheck } = validateRequest(
     signupSchema,
     req.body
   );
 
-  const user = await signup(email, nickname, password, passwordCheck);
+  const user = await signup(email, name, password, passwordCheck);
 
   res.status(201).json({
     message: "회원가입이 완료되었습니다.",

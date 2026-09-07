@@ -71,16 +71,26 @@ const swaggerSpec = {
         properties: {
           id: { type: "integer", example: 1 },
           email: { type: "string", example: "test@example.com" },
-          nickname: { type: "string", example: "testuser" },
+          name: { type: "string", example: "홍길동" },
+          role: { type: "string", nullable: true, example: "Professional" },
+          phone: { type: "string", nullable: true, example: "010-1234-5678" },
+          github: { type: "string", nullable: true, example: "https://github.com/example" },
+          company: { type: "string", nullable: true, example: "회사명" },
+          jobTitle: { type: "string", nullable: true, example: "Frontend Developer" },
+          tel: { type: "string", nullable: true, example: "02-1234-5678" },
+          university: { type: "string", nullable: true, example: null },
+          department: { type: "string", nullable: true, example: null },
+          major: { type: "string", nullable: true, example: null },
+          onboardingCompleted: { type: "boolean", example: true },
         },
       },
 
       SignupRequest: {
         type: "object",
-        required: ["email", "nickname", "password", "passwordCheck"],
+        required: ["email", "name", "password", "passwordCheck"],
         properties: {
           email: { type: "string", example: "test@example.com" },
-          nickname: { type: "string", example: "testuser" },
+          name: { type: "string", example: "홍길동" },
           password: { type: "string", example: "password123" },
           passwordCheck: { type: "string", example: "password123" },
         },
@@ -454,9 +464,34 @@ const swaggerSpec = {
 
       UpdateProfileRequest: {
         type: "object",
-        required: ["nickname"],
+        required: ["name", "role", "phone"],
         properties: {
-          nickname: { type: "string", example: "newNickname" },
+          name: { type: "string", example: "홍길동" },
+          role: { type: "string", enum: ["Professional", "Professor", "Student"] },
+          phone: { type: "string", example: "010-1234-5678" },
+          github: { type: "string", example: "https://github.com/example" },
+          company: { type: "string", example: "회사명" },
+          jobTitle: { type: "string", example: "Frontend Developer" },
+          tel: { type: "string", example: "02-1234-5678" },
+          university: { type: "string", example: "대학교" },
+          department: { type: "string", example: "컴퓨터공학과" },
+          major: { type: "string", example: "컴퓨터공학" },
+        },
+      },
+
+      OnboardingRequest: {
+        type: "object",
+        required: ["role", "phone"],
+        properties: {
+          role: { type: "string", enum: ["Professional", "Professor", "Student"] },
+          phone: { type: "string", example: "010-1234-5678" },
+          github: { type: "string", example: "https://github.com/example" },
+          company: { type: "string", example: "회사명" },
+          jobTitle: { type: "string", example: "Frontend Developer" },
+          tel: { type: "string", example: "02-1234-5678" },
+          university: { type: "string", example: "대학교" },
+          department: { type: "string", example: "컴퓨터공학과" },
+          major: { type: "string", example: "컴퓨터공학" },
         },
       },
 
@@ -582,7 +617,7 @@ const swaggerSpec = {
               },
               example: {
                 email: "test@example.com",
-                nickname: "testuser",
+                name: "홍길동",
                 password: "password123",
                 passwordCheck: "password123",
               },
@@ -602,7 +637,7 @@ const swaggerSpec = {
                   user: {
                     id: 1,
                     email: "test@example.com",
-                    nickname: "testuser",
+                    name: "홍길동",
                   },
                 },
               },
@@ -642,7 +677,7 @@ const swaggerSpec = {
             },
           },
           "409": {
-            description: "이메일 또는 닉네임 중복",
+            description: "이메일 중복",
             content: {
               "application/json": {
                 schema: {
@@ -654,14 +689,6 @@ const swaggerSpec = {
                     value: {
                       message: "이미 사용 중인 이메일입니다.",
                       errorCode: "EMAIL_ALREADY_EXISTS",
-                      errors: [],
-                    },
-                  },
-                  닉네임중복: {
-                    summary: "닉네임 중복",
-                    value: {
-                      message: "이미 사용 중인 닉네임입니다.",
-                      errorCode: "NICKNAME_ALREADY_EXISTS",
                       errors: [],
                     },
                   },
@@ -825,6 +852,23 @@ const swaggerSpec = {
     },
 
     "/users/me": {
+      get: {
+        tags: ["User"],
+        summary: "내 정보 조회",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          "200": {
+            description: "내 정보 조회 성공",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/UserResponse" },
+              },
+            },
+          },
+          "401": { $ref: "#/components/responses/UnauthorizedError" },
+          "404": { $ref: "#/components/responses/NotFoundError" },
+        },
+      },
       patch: {
         tags: ["User"],
         summary: "내 프로필 수정",
@@ -837,7 +881,7 @@ const swaggerSpec = {
                 $ref: "#/components/schemas/UpdateProfileRequest",
               },
               example: {
-                nickname: "newNickname",
+                name: "홍길동",
               },
             },
           },
@@ -855,7 +899,7 @@ const swaggerSpec = {
                   user: {
                     id: 1,
                     email: "test@example.com",
-                    nickname: "newNickname",
+                    name: "홍길동",
                   },
                 },
               },
@@ -873,6 +917,64 @@ const swaggerSpec = {
           "500": {
             $ref: "#/components/responses/InternalServerError",
           },
+        },
+      },
+    },
+
+    "/users/me/profile": {
+      patch: {
+        tags: ["User"],
+        summary: "내 프로필 수정",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpdateProfileRequest" },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "내 프로필 수정 성공",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/UserResponse" },
+              },
+            },
+          },
+          "400": { $ref: "#/components/responses/ValidationError" },
+          "401": { $ref: "#/components/responses/UnauthorizedError" },
+          "404": { $ref: "#/components/responses/NotFoundError" },
+        },
+      },
+    },
+
+    "/users/me/onboarding": {
+      post: {
+        tags: ["User"],
+        summary: "온보딩 정보 저장",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/OnboardingRequest" },
+            },
+          },
+        },
+        responses: {
+          "201": {
+            description: "온보딩 정보 저장 성공",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/UserResponse" },
+              },
+            },
+          },
+          "400": { $ref: "#/components/responses/ValidationError" },
+          "401": { $ref: "#/components/responses/UnauthorizedError" },
+          "409": { $ref: "#/components/responses/ConflictError" },
         },
       },
     },
