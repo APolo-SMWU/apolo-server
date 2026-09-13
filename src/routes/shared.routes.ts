@@ -1,8 +1,6 @@
 import { Router } from "express";
-import { getSharedPortfolioController } from "../controllers/shared.controller";
+import { getSharedController } from "../controllers/portfolios.controller";
 
 const router = Router();
-
-router.get("/portfolios/:shareToken", getSharedPortfolioController);
-
+router.get("/:shareId", getSharedController);
 export default router;

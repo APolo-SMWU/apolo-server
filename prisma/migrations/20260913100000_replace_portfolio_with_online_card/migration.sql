@@ -25,12 +25,14 @@ CREATE TYPE "UserType" AS ENUM ('student', 'professor', 'professional');
 -- CreateEnum
 CREATE TYPE "PortfolioStatus" AS ENUM ('generating', 'draft', 'published', 'failed');
 
+-- RenameColumn
+ALTER TABLE "Portfolio" RENAME COLUMN "externalLinks" TO "sourceLinks";
+
 -- AlterTable
 ALTER TABLE "Portfolio"
 DROP COLUMN "jobRole",
 DROP COLUMN "careerLevel",
 DROP COLUMN "directionPrompt",
-DROP COLUMN "externalLinks",
 DROP COLUMN "currentContentJson",
 DROP COLUMN "isPublic",
 DROP COLUMN "isShared",
@@ -42,7 +44,6 @@ ADD COLUMN "siteDesignId" TEXT NOT NULL DEFAULT 'legacy-site',
 ADD COLUMN "card" JSONB NOT NULL DEFAULT '{}',
 ADD COLUMN "profile" JSONB NOT NULL DEFAULT '{}',
 ADD COLUMN "blocks" JSONB NOT NULL DEFAULT '[]',
-ADD COLUMN "sourceLinks" JSONB NOT NULL DEFAULT '[]',
 ADD COLUMN "sourceSnapshots" JSONB NOT NULL DEFAULT '[]',
 ADD COLUMN "schemaVersion" INTEGER NOT NULL DEFAULT 1,
 ADD COLUMN "status" "PortfolioStatus" NOT NULL DEFAULT 'draft';
@@ -55,7 +56,6 @@ ALTER COLUMN "siteDesignId" DROP DEFAULT,
 ALTER COLUMN "card" DROP DEFAULT,
 ALTER COLUMN "profile" DROP DEFAULT,
 ALTER COLUMN "blocks" DROP DEFAULT,
-ALTER COLUMN "sourceLinks" DROP DEFAULT,
 ALTER COLUMN "sourceSnapshots" DROP DEFAULT;
 
 -- CreateTable
