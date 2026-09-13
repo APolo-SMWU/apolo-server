@@ -11,72 +11,63 @@ datasource db {
   provider = "postgresql"
 }
 
-enum ChangeType {
-  INITIAL_GENERATION
-  AI_EDIT
-  MANUAL_EDIT
+enum UserType {
+  student
+  professor
+  professional
 }
+
+enum PortfolioStatus {
+  generating
+  draft
+  published
+  failed
+}
+
 model User {
-  id         Int       @id @default(autoincrement())
-  email      String    @unique
-  name       String
-  password   String
-  role       String?
-  phone      String?
-  github     String?
-  company    String?
-  jobTitle   String?
-  tel        String?
-  university String?
-  department String?
-  major      String?
-  onboardingCompleted Boolean @default(false)
-  portfolios Portfolio[]
-  comments   Comment[]
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id                  Int         @id @default(autoincrement())
+  email               String      @unique
+  name                String
+  password            String
+  role                String?
+  phone               String?
+  github              String?
+  company             String?
+  jobTitle            String?
+  tel                 String?
+  university          String?
+  department          String?
+  major               String?
+  onboardingCompleted Boolean     @default(false)
+  portfolios          Portfolio[]
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
 }
 
 model Portfolio {
-  id                 Int                @id @default(autoincrement())
-  userId              Int
-  title              String
-  jobRole            String
-  careerLevel        String
-  directionPrompt    String
-  externalLinks      Json
-  currentContentJson Json
-  isPublic           Boolean            @default(false)
-  isShared           Boolean            @default(false)
-  shareToken         String?            @unique
-  sharedAt           DateTime?
-  user               User               @relation(fields: [userId], references: [id])
-  versions           PortfolioVersion[]
-  comments           Comment[]
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  id              Int              @id @default(autoincrement())
+  userId          Int
+  title           String
+  userType        UserType
+  cardDesignId    String
+  siteDesignId    String
+  card            Json
+  profile         Json
+  blocks          Json
+  sourceLinks     Json
+  sourceSnapshots Json
+  schemaVersion   Int              @default(1)
+  status          PortfolioStatus  @default(draft)
+  user            User             @relation(fields: [userId], references: [id])
+  shares          PortfolioShare[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 }
 
-model PortfolioVersion {
-  id            Int         @id @default(autoincrement())
-  portfolioId   Int
-  versionNumber Int
-  contentJson   Json
-  changeType    ChangeType
-  changePrompt  String?
-  portfolio     Portfolio   @relation(fields: [portfolioId], references: [id])
-  createdAt     DateTime    @default(now())
-
-  @@unique([portfolioId, versionNumber])
-}
-
-model Comment {
-  id          Int        @id @default(autoincrement())
+model PortfolioShare {
+  id          Int       @id @default(autoincrement())
   portfolioId Int
-  authorId    Int
-  content     String
-  portfolio   Portfolio  @relation(fields: [portfolioId], references: [id])
-  author      User       @relation(fields: [authorId], references: [id])
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  shareId     String    @unique
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
 }
