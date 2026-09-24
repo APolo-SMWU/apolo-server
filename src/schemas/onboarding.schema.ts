@@ -17,6 +17,8 @@ const profileFieldsSchema = z.object({
   university: optionalText,
   department: optionalText,
   major: optionalText,
+  // 보내지 않으면 회사명·학교명으로 자동 조회한다.
+  organizationAddress: z.string().trim().max(500).nullable().optional(),
 });
 
 const validateRoleFields = (

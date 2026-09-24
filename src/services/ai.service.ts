@@ -14,6 +14,7 @@ export interface OnlineCardUserProfile {
   university: string | null;
   department: string | null;
   major: string | null;
+  organizationAddress: string | null;
 }
 
 export interface GenerationRequest {
@@ -78,7 +79,7 @@ const localProvider: OnlineCardAiProvider = {
         headline,
         phone: user.phone,
         email: user.email,
-        organizationAddress: "",
+        organizationAddress: user.organizationAddress,
       },
       profile: {
         name: user.name,

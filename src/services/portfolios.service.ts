@@ -114,6 +114,7 @@ export const createPortfolioService = (
         university: true,
         department: true,
         major: true,
+        organizationAddress: true,
       },
     });
     if (!user) {
