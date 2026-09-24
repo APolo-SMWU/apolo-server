@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
-import type { Prisma, Portfolio, UserType } from "@prisma/client";
+import type { Prisma, Portfolio } from "@prisma/client";
+import { mapUserType } from "./ai-profile.mapper";
 import { AppError } from "../errors/app-error";
 import prisma from "../lib/prisma";
 import type {
@@ -54,23 +55,6 @@ interface PortfolioServiceDependencies {
 
 const ownershipError = () =>
   new AppError(404, "온라인 명함을 찾을 수 없습니다.", "NOT_FOUND");
-
-const mapUserType = (role: string | null): UserType => {
-  switch (role?.toLocaleLowerCase()) {
-    case "student":
-      return "student";
-    case "professor":
-      return "professor";
-    case "professional":
-      return "professional";
-    default:
-      throw new AppError(
-        422,
-        "온라인 명함 생성 전에 사용자 유형을 등록해주세요.",
-        "PROFILE_INCOMPLETE",
-      );
-  }
-};
 
 const asJson = (value: unknown): Prisma.InputJsonValue =>
   value as Prisma.InputJsonValue;
