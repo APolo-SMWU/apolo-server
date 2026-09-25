@@ -37,9 +37,11 @@ export const aboutBlockSchema = z
   })
   .strict();
 
-const timelineDateSchema = z
-  .string()
-  .regex(/^\d{4}(?:\.(?:0[1-9]|1[0-2]))?$/, "날짜는 YYYY 또는 YYYY.MM 형식이어야 합니다.");
+// 날짜 미입력은 빈 문자열로 표현하고, 입력된 날짜는 기존 형식을 검증한다.
+const timelineDateSchema = z.union([
+  z.literal(""),
+  z.string().regex(/^\d{4}(?:\.(?:0[1-9]|1[0-2]))?$/, "날짜는 YYYY 또는 YYYY.MM 형식이어야 합니다."),
+]);
 
 export const timelineItemSchema = z
   .object({
