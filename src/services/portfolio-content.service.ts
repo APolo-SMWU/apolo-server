@@ -3,15 +3,11 @@ import { createHash, randomUUID } from "node:crypto";
 import { z } from "zod";
 import { AppError } from "../errors/app-error";
 import {
-  businessCardSchema,
   contentBlockSchema,
-  profileSchema,
   sourceSnapshotSchema,
 } from "../schemas/portfolio.schema";
 import type {
-  BusinessCardData,
   ContentBlock,
-  ProfileData,
   SourceSnapshot,
   TimelineBlock,
   TimelineItem,
@@ -128,10 +124,10 @@ export const normalizeBlocks = (
   return blocks.map((block) => normalizeBlockIds(block, createId, replaceIds));
 };
 
-export const normalizeGeneratedDocument = (
+export const normalizeGeneratedBlocks = (
   value: unknown,
   createId: IdFactory = randomUUID,
-): { card: BusinessCardData; profile: ProfileData; blocks: ContentBlock[] } => {
+): ContentBlock[] => {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw invalidData("AI 생성 결과 형식이 올바르지 않습니다.", "INVALID_AI_RESPONSE");
   }
@@ -142,21 +138,7 @@ export const normalizeGeneratedDocument = (
     "AI가 생성한 콘텐츠 형식이 올바르지 않습니다.",
     "INVALID_AI_RESPONSE",
   );
-  return {
-    card: parseWithAppError(
-      businessCardSchema,
-      generated.card,
-      "AI가 생성한 명함 형식이 올바르지 않습니다.",
-      "INVALID_AI_RESPONSE",
-    ),
-    profile: parseWithAppError(
-      profileSchema,
-      generated.profile,
-      "AI가 생성한 프로필 형식이 올바르지 않습니다.",
-      "INVALID_AI_RESPONSE",
-    ),
-    blocks: blocks.map((block) => normalizeBlockIds(block, createId, true)),
-  };
+  return blocks.map((block) => normalizeBlockIds(block, createId, true));
 };
 
 export const parseRefreshedBlocks = (

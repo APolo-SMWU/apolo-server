@@ -1,3 +1,4 @@
+import { buildInitialPortfolioProfile } from "./portfolio-profile.service";
 import { randomUUID } from "node:crypto";
 
 import type { Prisma, Portfolio } from "@prisma/client";
@@ -17,7 +18,7 @@ import {
   fetchSourceUpdates,
   mergeRefreshedBlocks,
   normalizeBlocks,
-  normalizeGeneratedDocument,
+  normalizeGeneratedBlocks,
   normalizeSourceLinks,
   parseRefreshedBlocks,
   type Clock,
@@ -105,6 +106,7 @@ export const createPortfolioService = (
     }
 
     const userType = mapUserType(user.role);
+    const { card, profile } = buildInitialPortfolioProfile(user);
     const sourceLinks = normalizeSourceLinks(input.externalLinks);
     const sourceState = await fetchSourceUpdates(
       sourceLinks,
@@ -117,7 +119,7 @@ export const createPortfolioService = (
       sources: sourceState.sources,
       ...(input.requirements === undefined ? {} : { requirements: input.requirements }),
     };
-    const generated = normalizeGeneratedDocument(
+    const blocks = normalizeGeneratedBlocks(
       await ai.generate(generationRequest),
       createId,
     );
@@ -129,9 +131,9 @@ export const createPortfolioService = (
         userType,
         cardDesignId: input.cardDesignId,
         siteDesignId: input.siteDesignId,
-        card: asJson(generated.card),
-        profile: asJson(generated.profile),
-        blocks: asJson(generated.blocks),
+        card: asJson(card),
+        profile: asJson(profile),
+        blocks: asJson(blocks),
         sourceLinks: asJson(sourceLinks),
         sourceSnapshots: asJson(sourceState.snapshots),
         schemaVersion: 1,

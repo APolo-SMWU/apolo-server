@@ -1,4 +1,3 @@
-import { AppError } from "../errors/app-error";
 import type { FetchedSource } from "./portfolio-content.service";
 
 export interface OnlineCardUserProfile {
@@ -33,8 +32,6 @@ export interface RefreshRequest {
 }
 
 export interface GeneratedOnlineCard {
-  card: unknown;
-  profile: unknown;
   blocks: unknown;
 }
 
@@ -48,46 +45,13 @@ export interface OnlineCardAiProvider {
 }
 
 const localProvider: OnlineCardAiProvider = {
-  async generate({ user, requirements }) {
-    if (!user.phone) {
-      throw new AppError(
-        422,
-        "온라인 명함 생성 전에 전화번호를 등록해주세요.",
-        "PROFILE_INCOMPLETE",
-      );
-    }
-
-    const headline =
-      user.jobTitle || user.major || user.department || user.role || "Professional";
-    const fields: Array<{ kind: string; label: string; value: string }> = [
-      { kind: "email", label: "Email", value: user.email },
-      { kind: "phone", label: "Phone", value: user.phone },
-    ];
-    if (user.github?.startsWith("http://") || user.github?.startsWith("https://")) {
-      fields.push({ kind: "github", label: "GitHub", value: user.github });
-    }
-
+  async generate({ requirements }) {
     const blocks: Array<Record<string, unknown>> = [];
     if (requirements) {
       blocks.push({ type: "about", visible: true, body: requirements });
     }
 
-    return {
-      card: {
-        name: user.name,
-        headline,
-        phone: user.phone,
-        email: user.email,
-        organizationAddress: "",
-      },
-      profile: {
-        name: user.name,
-        title: headline,
-        avatarUrl: null,
-        fields,
-      },
-      blocks,
-    };
+    return { blocks };
   },
   async refresh() {
     return { blocks: [] };
