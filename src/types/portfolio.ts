@@ -64,6 +64,7 @@ export type TimelineItemKind =
 
 export interface TimelineItem {
   id: string;
+  entityId?: string;
   startDate: string;
   endDate?: string;
   organization: string;
@@ -83,6 +84,7 @@ export type WorkItemKind = "project" | "publication" | "opensource";
 
 export interface WorkItem {
   id: string;
+  entityId?: string;
   kind: WorkItemKind;
   title: string;
   role?: string;

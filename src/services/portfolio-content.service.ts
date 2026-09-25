@@ -1,3 +1,4 @@
+import { generateResponseSchema, type AiGenerateResponse } from "../schemas/ai-generate.schema";
 import { createHash, randomUUID } from "node:crypto";
 
 import { z } from "zod";
@@ -124,21 +125,21 @@ export const normalizeBlocks = (
   return blocks.map((block) => normalizeBlockIds(block, createId, replaceIds));
 };
 
-export const normalizeGeneratedBlocks = (
+export const normalizeGeneratedResponse = (
   value: unknown,
   createId: IdFactory = randomUUID,
-): ContentBlock[] => {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw invalidData("AI 생성 결과 형식이 올바르지 않습니다.", "INVALID_AI_RESPONSE");
-  }
-  const generated = value as Record<string, unknown>;
-  const blocks = parseWithAppError(
-    blocksSchema,
-    generated.blocks,
-    "AI가 생성한 콘텐츠 형식이 올바르지 않습니다.",
+): { blocks: ContentBlock[]; meta: AiGenerateResponse["meta"]; warnings: AiGenerateResponse["warnings"] } => {
+  const generated = parseWithAppError(
+    generateResponseSchema,
+    value,
+    "AI 생성 결과 형식이 올바르지 않습니다.",
     "INVALID_AI_RESPONSE",
   );
-  return blocks.map((block) => normalizeBlockIds(block, createId, true));
+  return {
+    blocks: generated.blocks.map((block) => normalizeBlockIds(block, createId, true)),
+    meta: generated.meta,
+    warnings: generated.warnings,
+  };
 };
 
 export const parseRefreshedBlocks = (

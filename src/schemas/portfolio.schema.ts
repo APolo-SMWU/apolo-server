@@ -50,9 +50,10 @@ const timelineDateSchema = z.union([
 export const timelineItemSchema = z
   .object({
     id: generatedIdSchema,
+    entityId: requiredString("KG Entity ID", 200).optional(),
     startDate: timelineDateSchema,
     endDate: z.union([timelineDateSchema, z.literal("Present")]).optional(),
-    organization: requiredString("소속", 200),
+    organization: z.string().trim().max(200),
     role: requiredString("역할", 200).optional(),
     description: requiredString("설명", 10_000).optional(),
     kind: z
@@ -87,6 +88,7 @@ export const timelineBlockSchema = z
 export const workItemSchema = z
   .object({
     id: generatedIdSchema,
+    entityId: requiredString("KG Entity ID", 200).optional(),
     kind: z.enum(["project", "publication", "opensource"]),
     title: requiredString("작업 제목", 200),
     role: requiredString("역할", 200).optional(),

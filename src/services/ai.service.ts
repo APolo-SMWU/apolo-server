@@ -1,3 +1,5 @@
+import { generateViaHttp } from "./ai-http.service";
+import type { GenerateRequest } from "./ai-generate.mapper";
 import type { FetchedSource } from "./portfolio-content.service";
 
 export interface OnlineCardUserProfile {
@@ -15,12 +17,6 @@ export interface OnlineCardUserProfile {
   major: string | null;
 }
 
-export interface GenerationRequest {
-  user: OnlineCardUserProfile;
-  sources: FetchedSource[];
-  requirements?: string;
-}
-
 export interface RefreshRequest {
   portfolio: {
     title: string;
@@ -33,6 +29,8 @@ export interface RefreshRequest {
 
 export interface GeneratedOnlineCard {
   blocks: unknown;
+  meta: unknown;
+  warnings: unknown;
 }
 
 export interface RefreshedOnlineCard {
@@ -40,32 +38,25 @@ export interface RefreshedOnlineCard {
 }
 
 export interface OnlineCardAiProvider {
-  generate(request: GenerationRequest): Promise<GeneratedOnlineCard>;
+  generate(request: GenerateRequest): Promise<GeneratedOnlineCard>;
   refresh(request: RefreshRequest): Promise<RefreshedOnlineCard>;
 }
 
-const localProvider: OnlineCardAiProvider = {
-  async generate({ requirements }) {
-    const blocks: Array<Record<string, unknown>> = [];
-    if (requirements) {
-      blocks.push({ type: "about", visible: true, body: requirements });
-    }
-
-    return { blocks };
-  },
+const httpProvider: OnlineCardAiProvider = {
+  generate: generateViaHttp,
   async refresh() {
     return { blocks: [] };
   },
 };
 
-let activeProvider: OnlineCardAiProvider = localProvider;
+let activeProvider: OnlineCardAiProvider = httpProvider;
 
 export const setOnlineCardAiProvider = (provider: OnlineCardAiProvider) => {
   activeProvider = provider;
 };
 
 export const resetOnlineCardAiProvider = () => {
-  activeProvider = localProvider;
+  activeProvider = httpProvider;
 };
 
 export const onlineCardAiService: OnlineCardAiProvider = {

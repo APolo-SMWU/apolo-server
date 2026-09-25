@@ -1,3 +1,4 @@
+import { toGenerateRequest } from "./ai-generate.mapper";
 import { buildInitialPortfolioProfile } from "./portfolio-profile.service";
 import { randomUUID } from "node:crypto";
 
@@ -18,7 +19,7 @@ import {
   fetchSourceUpdates,
   mergeRefreshedBlocks,
   normalizeBlocks,
-  normalizeGeneratedBlocks,
+  normalizeGeneratedResponse,
   normalizeSourceLinks,
   parseRefreshedBlocks,
   type Clock,
@@ -28,7 +29,6 @@ import {
 import {
   onlineCardAiService,
   type OnlineCardAiProvider,
-  type OnlineCardUserProfile,
 } from "./ai.service";
 
 const summarySelect = {
@@ -108,18 +108,9 @@ export const createPortfolioService = (
     const userType = mapUserType(user.role);
     const { card, profile } = buildInitialPortfolioProfile(user);
     const sourceLinks = normalizeSourceLinks(input.externalLinks);
-    const sourceState = await fetchSourceUpdates(
-      sourceLinks,
-      [],
-      sourceFetcher,
-      now,
-    );
-    const generationRequest = {
-      user: user as OnlineCardUserProfile,
-      sources: sourceState.sources,
-      ...(input.requirements === undefined ? {} : { requirements: input.requirements }),
-    };
-    const blocks = normalizeGeneratedBlocks(
+    // 생성 시 외부 소스는 AI가 처리한다. Backend는 링크만 전달한다.
+    const generationRequest = toGenerateRequest(user, { ...input, externalLinks: sourceLinks });
+    const generated = normalizeGeneratedResponse(
       await ai.generate(generationRequest),
       createId,
     );
@@ -133,9 +124,11 @@ export const createPortfolioService = (
         siteDesignId: input.siteDesignId,
         card: asJson(card),
         profile: asJson(profile),
-        blocks: asJson(blocks),
+        blocks: asJson(generated.blocks),
+        aiMeta: asJson(generated.meta),
+        aiWarnings: asJson(generated.warnings),
         sourceLinks: asJson(sourceLinks),
-        sourceSnapshots: asJson(sourceState.snapshots),
+        sourceSnapshots: asJson([]),
         schemaVersion: 1,
         status: "draft",
       },
