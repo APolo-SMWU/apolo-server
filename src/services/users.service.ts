@@ -56,7 +56,7 @@ type OrganizationProfile = {
 };
 
 // 재직자는 회사, 교수·학생은 학교가 소속 기관이다.
-const organizationNameOf = ({
+export const organizationNameOf = ({
   role,
   company,
   university,
