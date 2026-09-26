@@ -17,6 +17,7 @@ import type {
   TimelineItem,
   WorkItem,
 } from "../types/portfolio";
+import { BlockedUrlError, fetchPublic, ResponseTooLargeError } from "../utils/public-http";
 
 export interface FetchedSource {
   url: string;
@@ -325,13 +326,31 @@ export const mergeRefreshedBlocks = (
   return current;
 };
 
+const SOURCE_TIMEOUT_MS = 10_000;
+const SOURCE_MAX_BYTES = 5 * 1024 * 1024;
+
+const rejectedSource = (url: string, message: string, errorCode: string) =>
+  new AppError(422, message, errorCode, [{ field: "externalLinks", message: url }]);
+
 export const defaultSourceFetcher: SourceFetcher = async (url) => {
-  const response = await fetch(url, {
-    headers: { accept: "text/html,application/json,text/plain" },
-    signal: AbortSignal.timeout(10_000),
-  });
-  if (!response.ok) {
+  let response;
+  try {
+    response = await fetchPublic(url, {
+      timeoutMs: SOURCE_TIMEOUT_MS,
+      maxBytes: SOURCE_MAX_BYTES,
+      headers: { accept: "text/html,application/json,text/plain" },
+    });
+  } catch (error) {
+    if (error instanceof BlockedUrlError) {
+      throw rejectedSource(url, "내부 네트워크 주소는 외부 링크로 사용할 수 없습니다.", "SOURCE_URL_NOT_ALLOWED");
+    }
+    if (error instanceof ResponseTooLargeError) {
+      throw rejectedSource(url, "외부 링크의 내용이 너무 큽니다.", "SOURCE_TOO_LARGE");
+    }
+    throw error;
+  }
+  if (response.status < 200 || response.status >= 300) {
     throw new Error(`Source request failed with ${response.status}`);
   }
-  return { url, content: await response.text() };
+  return { url, content: response.body.toString("utf8") };
 };

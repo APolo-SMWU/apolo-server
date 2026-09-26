@@ -1,11 +1,11 @@
 import { z } from "zod";
+import { fetchPublic } from "../utils/public-http";
 
 const WIKIDATA_TIMEOUT_MS = 5_000;
 // 봇 요청을 막는 홈페이지는 응답 없이 시간을 끌기 때문에 더 짧게 끊는다.
 const HOMEPAGE_TIMEOUT_MS = 3_000;
 const WIKIDATA_SPARQL_URL = "https://query.wikidata.org/sparql";
-// Wikimedia 정책상 요청 주체를 식별할 수 있는 User-Agent가 필요하다.
-const USER_AGENT = "apolo-server/1.0 (https://github.com/APolo-SMWU/apolo-server)";
+const MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
 const LOGO_WIDTH = 500;
 const MIN_ICON_SIZE = 64;
 
@@ -103,46 +103,23 @@ export const imageSizeOf = (bytes: Buffer): { width: number; height: number } | 
   return null;
 };
 
-// 위키데이터 값은 누구나 편집할 수 있으므로 내부망 주소로는 요청하지 않는다.
-const isPublicHttpUrl = (value: string) => {
-  const url = new URL(value);
-  return (
-    (url.protocol === "http:" || url.protocol === "https:") &&
-    !/^(localhost|\d{1,3}(\.\d{1,3}){3}|\[.*\])$/i.test(url.hostname)
-  );
-};
-
-/** 응답 본문까지 읽은 뒤 타이머를 해제한다. */
+/** 위키데이터·홈페이지·아이콘 모두 접속 IP와 리다이렉트를 검사한다. */
 const fetchBytes = async (
   url: string,
   timeoutMs: number,
   headers: Record<string, string> = {},
-) => {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(url, {
-      headers: { "User-Agent": USER_AGENT, ...headers },
-      signal: controller.signal,
-    });
-    return { response, bytes: Buffer.from(await response.arrayBuffer()) };
-  } finally {
-    clearTimeout(timer);
-  }
-};
+) => fetchPublic(url, { timeoutMs, maxBytes: MAX_RESPONSE_BYTES, headers });
 
 /** 공식 홈페이지 아이콘은 명함에 쓸 만한 크기일 때만 쓴다. */
 const findHomepageIcon = async (homepage: string): Promise<string | null> => {
-  if (!isPublicHttpUrl(homepage)) return null;
   const page = await fetchBytes(homepage, HOMEPAGE_TIMEOUT_MS);
-  if (!page.response.ok) return null;
-  const iconUrl = selectIconUrl(page.bytes.toString("latin1"), page.response.url);
-  if (!isPublicHttpUrl(iconUrl)) return null;
+  if (page.status < 200 || page.status >= 300) return null;
+  const iconUrl = selectIconUrl(page.body.toString("latin1"), page.url);
   const icon = await fetchBytes(iconUrl, HOMEPAGE_TIMEOUT_MS);
-  if (!icon.response.ok) return null;
-  if (/svg/i.test(icon.response.headers.get("content-type") ?? iconUrl)) return iconUrl;
-  const size = imageSizeOf(icon.bytes);
-  return size && Math.min(size.width, size.height) >= MIN_ICON_SIZE ? iconUrl : null;
+  if (icon.status < 200 || icon.status >= 300) return null;
+  if (/svg/i.test(icon.contentType || icon.url)) return icon.url;
+  const size = imageSizeOf(icon.body);
+  return size && Math.min(size.width, size.height) >= MIN_ICON_SIZE ? icon.url : null;
 };
 
 /**
@@ -159,14 +136,14 @@ export const lookupOrganizationLogo = async (
     const url = new URL(WIKIDATA_SPARQL_URL);
     url.searchParams.set("format", "json");
     url.searchParams.set("query", buildQuery(name));
-    const { response, bytes } = await fetchBytes(url.toString(), WIKIDATA_TIMEOUT_MS, {
+    const response = await fetchBytes(url.toString(), WIKIDATA_TIMEOUT_MS, {
       Accept: "application/sparql-results+json",
     });
-    if (!response.ok) {
+    if (response.status < 200 || response.status >= 300) {
       console.warn(`[logo-lookup] 위키데이터 조회 실패 (HTTP ${response.status})`);
       return null;
     }
-    const links = selectOrganizationLinks(JSON.parse(bytes.toString("utf8")));
+    const links = selectOrganizationLinks(JSON.parse(response.body.toString("utf8")));
     if (!links) return null;
     return links.logoUrl ?? (links.homepage ? await findHomepageIcon(links.homepage) : null);
   } catch {
