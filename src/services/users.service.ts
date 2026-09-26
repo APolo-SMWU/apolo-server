@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import { AppError } from "../errors/app-error";
 import prisma from "../lib/prisma";
 import type { OnboardingInput, ProfileInput } from "../schemas/onboarding.schema";
+import { lookupOrganizationAddress } from "./address-lookup.service";
 
 const userSelect = {
   id: true,
@@ -46,13 +47,57 @@ const profileData = (input: OnboardingInput | ProfileInput) => ({
   major: input.major || null,
 });
 
+type OrganizationProfile = {
+  role: string | null;
+  company: string | null;
+  university: string | null;
+};
+
+// 재직자는 회사, 교수·학생은 학교가 소속 기관이다.
+export const organizationNameOf = ({
+  role,
+  company,
+  university,
+}: OrganizationProfile) => {
+  const name = role?.toLowerCase() === "professional" ? company : university;
+  return name?.trim() || null;
+};
+
+/**
+ * 저장할 organizationAddress를 정한다. undefined면 기존 값을 그대로 둔다.
+ * 소속 기관(회사·학교)이 바뀌었으면 자동 조회한다. 조회 실패 시 null.
+ * 주소는 내부 저장용이며 프로필 API의 입력·응답에는 포함하지 않는다.
+ */
+export const resolveOrganizationAddress = async (
+  current: OrganizationProfile,
+  input: OnboardingInput | ProfileInput,
+  lookup = lookupOrganizationAddress,
+): Promise<string | null | undefined> => {
+  const nextOrganization = organizationNameOf({
+    role: input.role,
+    company: input.company ?? null,
+    university: input.university ?? null,
+  });
+  if (nextOrganization === organizationNameOf(current)) return undefined;
+
+  return nextOrganization ? lookup(nextOrganization) : null;
+};
+
+const organizationAddressData = (organizationAddress: string | null | undefined) =>
+  organizationAddress === undefined ? {} : { organizationAddress };
+
 export const completeOnboarding = async (
   userId: number,
   input: OnboardingInput
 ) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { onboardingCompleted: true },
+    select: {
+      onboardingCompleted: true,
+      role: true,
+      company: true,
+      university: true,
+    },
   });
 
   if (!user) {
@@ -67,10 +112,13 @@ export const completeOnboarding = async (
     );
   }
 
+  const organizationAddress = await resolveOrganizationAddress(user, input);
+
   return prisma.user.update({
     where: { id: userId },
     data: {
       ...profileData(input),
+      ...organizationAddressData(organizationAddress),
       onboardingCompleted: true,
     },
     select: userSelect,
@@ -89,6 +137,8 @@ export const updateMyProfile = async (userId: number, input: ProfileInput) => {
     throw new AppError(404, "사용자를 찾을 수 없습니다.", "NOT_FOUND");
   }
 
+  const organizationAddress = await resolveOrganizationAddress(user, input);
+
   const updatedUser = await prisma.user.update({
     where: {
       id: userId,
@@ -96,6 +146,7 @@ export const updateMyProfile = async (userId: number, input: ProfileInput) => {
     data: {
       name: input.name,
       ...profileData(input),
+      ...organizationAddressData(organizationAddress),
     },
     select: userSelect,
   });

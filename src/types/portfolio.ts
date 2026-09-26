@@ -8,6 +8,7 @@ export interface BusinessCardData {
   phone: string;
   email: string;
   organizationAddress: string | null;
+  logoUrl?: string | null | undefined;
 }
 
 export type ProfileFieldKind =

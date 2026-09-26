@@ -30,6 +30,8 @@ import {
   onlineCardAiService,
   type OnlineCardAiProvider,
 } from "./ai.service";
+import { lookupOrganizationLogo } from "./logo-lookup.service";
+import { organizationNameOf } from "./users.service";
 
 const summarySelect = {
   id: true,
@@ -52,6 +54,7 @@ interface PortfolioServiceDependencies {
   sourceFetcher: SourceFetcher;
   createId: IdFactory;
   now: Clock;
+  logoLookup: (organizationName: string) => Promise<string | null>;
 }
 
 const ownershipError = () =>
@@ -68,6 +71,7 @@ export const createPortfolioService = (
   const sourceFetcher = overrides.sourceFetcher ?? defaultSourceFetcher;
   const createId = overrides.createId ?? randomUUID;
   const now = overrides.now ?? (() => new Date());
+  const logoLookup = overrides.logoLookup ?? lookupOrganizationLogo;
 
   const getOwnedOnlineCard = async (
     userId: number,
@@ -99,6 +103,7 @@ export const createPortfolioService = (
         university: true,
         department: true,
         major: true,
+        organizationAddress: true,
       },
     });
     if (!user) {
@@ -108,12 +113,14 @@ export const createPortfolioService = (
     const userType = mapUserType(user.role);
     const { card, profile } = buildInitialPortfolioProfile(user);
     const sourceLinks = normalizeSourceLinks(input.externalLinks);
-    // 생성 시 외부 소스는 AI가 처리한다. Backend는 링크만 전달한다.
+    // 외부 소스 수집은 AI가 담당하고, 명함 로고는 Backend가 별도로 조회한다.
     const generationRequest = toGenerateRequest(user, { ...input, externalLinks: sourceLinks });
-    const generated = normalizeGeneratedResponse(
-      await ai.generate(generationRequest),
-      createId,
-    );
+    const organizationName = organizationNameOf(user);
+    const [aiResult, logoUrl] = await Promise.all([
+      ai.generate(generationRequest),
+      organizationName ? logoLookup(organizationName) : null,
+    ]);
+    const generated = normalizeGeneratedResponse(aiResult, createId);
 
     return db.portfolio.create({
       data: {
@@ -122,7 +129,7 @@ export const createPortfolioService = (
         userType,
         cardDesignId: input.cardDesignId,
         siteDesignId: input.siteDesignId,
-        card: asJson(card),
+        card: asJson({ ...card, logoUrl }),
         profile: asJson(profile),
         blocks: asJson(generated.blocks),
         aiMeta: asJson(generated.meta),

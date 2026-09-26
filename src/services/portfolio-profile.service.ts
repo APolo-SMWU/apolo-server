@@ -5,7 +5,7 @@ import type { OnlineCardUserProfile } from "./ai.service";
 
 /** 최초 생성 전용. 기존 포트폴리오의 사용자 편집값에는 적용하지 않는다. */
 export const buildInitialPortfolioProfile = (
-  user: OnlineCardUserProfile,
+  user: OnlineCardUserProfile & { organizationAddress: string | null },
 ): { card: BusinessCardData; profile: ProfileData } => {
   if (!user.phone) {
     throw new AppError(
@@ -29,7 +29,7 @@ export const buildInitialPortfolioProfile = (
     headline,
     phone: user.phone,
     email: user.email,
-    organizationAddress: "",
+    organizationAddress: user.organizationAddress,
   });
   const profile = profileSchema.safeParse({
     name: user.name,

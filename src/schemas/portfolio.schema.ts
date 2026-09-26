@@ -137,6 +137,8 @@ export const businessCardSchema = z
     phone: requiredString("전화번호", 50),
     email: z.string().email("올바른 이메일 형식이 아닙니다."),
     organizationAddress: z.string().trim().max(500).nullable(),
+    // 명함 생성 시 Backend가 조회한다. 이전에 만든 명함에는 없을 수 있다.
+    logoUrl: httpUrlSchema.nullable().optional(),
   })
   .strict();
 

@@ -38,6 +38,7 @@ model User {
   university          String?
   department          String?
   major               String?
+  organizationAddress String?
   onboardingCompleted Boolean     @default(false)
   portfolios          Portfolio[]
   createdAt           DateTime    @default(now())
