@@ -17,6 +17,11 @@ const httpUrlSchema = z
 
 const generatedIdSchema = z.string().uuid().optional();
 
+const avatarReferenceSchema = z.union([
+  httpUrlSchema,
+  z.string().regex(/^portfolios\/\d+\/avatar\/[0-9a-f-]+\.(?:jpg|png|webp)$/, "올바른 프로필 이미지 참조가 아닙니다."),
+]);
+
 export const projectLinkSchema = z
   .object({
     label: requiredString("링크 이름", 50),
@@ -149,9 +154,18 @@ const profileFieldSchema = z.discriminatedUnion("kind", [
       value: requiredString("전화번호", 50),
     })
     .strict(),
+  ...(["tel", "company", "university", "department", "major"] as const).map((kind) =>
+    z
+      .object({
+        kind: z.literal(kind),
+        label: requiredString("프로필 필드 이름", 50),
+        value: requiredString("프로필 필드 값", 200),
+      })
+      .strict(),
+  ),
   z
     .object({
-      kind: z.enum(["github", "scholar", "company", "blog", "linkedin", "notion"]),
+      kind: z.enum(["github", "scholar", "blog", "linkedin", "notion"]),
       label: requiredString("프로필 필드 이름", 50),
       value: httpUrlSchema,
     })
@@ -161,7 +175,7 @@ const profileFieldSchema = z.discriminatedUnion("kind", [
 const profileFields = {
   name: requiredString("이름", 100),
   title: requiredString("프로필 제목", 200),
-  avatarUrl: httpUrlSchema.nullable(),
+  avatarUrl: avatarReferenceSchema.nullable(),
   fields: z.array(profileFieldSchema),
 };
 

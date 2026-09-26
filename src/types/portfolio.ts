@@ -14,9 +14,13 @@ export interface BusinessCardData {
 export type ProfileFieldKind =
   | "email"
   | "phone"
+  | "tel"
+  | "company"
+  | "university"
+  | "department"
+  | "major"
   | "github"
   | "scholar"
-  | "company"
   | "blog"
   | "linkedin"
   | "notion";

@@ -30,6 +30,19 @@ import {
 } from "./ai.service";
 import { lookupOrganizationLogo } from "./logo-lookup.service";
 import { organizationNameOf } from "./users.service";
+import { mapUserProfileToPortfolioProfile } from "./portfolio-profile";
+import {
+  createPortfolioAttachmentKey,
+  validatePortfolioAttachment,
+} from "./portfolio-attachment";
+import { deletePrivateObject, putPrivateObject } from "./s3.service";
+
+export type PortfolioGenerationAttachment = {
+  buffer: Buffer;
+  originalname: string;
+  mimetype: string;
+  size: number;
+};
 
 const summarySelect = {
   id: true,
@@ -102,7 +115,9 @@ export const createPortfolioService = (
   const createOnlineCard = async (
     userId: number,
     input: CreatePortfolioInput,
+    attachments: PortfolioGenerationAttachment[] = [],
   ): Promise<Portfolio> => {
+    attachments.forEach((file) => validatePortfolioAttachment(file, attachments.length));
     const user = await db.user.findUnique({
       where: { id: userId },
       select: {
@@ -144,7 +159,7 @@ export const createPortfolioService = (
       createId,
     );
 
-    return db.portfolio.create({
+    const portfolio = await db.portfolio.create({
       data: {
         userId,
         title: input.title,
@@ -152,7 +167,7 @@ export const createPortfolioService = (
         cardDesignId: input.cardDesignId,
         siteDesignId: input.siteDesignId,
         card: asJson({ ...generated.card, organizationAddress, logoUrl }),
-        profile: asJson(generated.profile),
+        profile: asJson(mapUserProfileToPortfolioProfile(user, generated.profile)),
         blocks: asJson(generated.blocks),
         sourceLinks: asJson(sourceLinks),
         sourceSnapshots: asJson(sourceState.snapshots),
@@ -160,6 +175,41 @@ export const createPortfolioService = (
         status: "draft",
       },
     });
+
+    const uploadedKeys: string[] = [];
+    try {
+      const attachmentData = [];
+      for (const file of attachments) {
+        const key = createPortfolioAttachmentKey(portfolio.id, file.mimetype);
+        await putPrivateObject({ key, body: file.buffer, contentType: file.mimetype });
+        uploadedKeys.push(key);
+        attachmentData.push({
+          portfolioId: portfolio.id,
+          s3Key: key,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size,
+        });
+      }
+
+      if (attachmentData.length > 0) {
+        await db.portfolioAttachment.createMany({ data: attachmentData });
+      }
+
+      return db.portfolio.findUniqueOrThrow({
+        where: { id: portfolio.id },
+        include: {
+          attachments: {
+            select: { id: true, originalName: true, mimeType: true, size: true, createdAt: true },
+          },
+        },
+      });
+    } catch (error) {
+      await Promise.all(uploadedKeys.map((key) => deletePrivateObject(key).catch(() => undefined)));
+      await db.portfolio.delete({ where: { id: portfolio.id } }).catch(() => undefined);
+      if (error instanceof AppError) throw error;
+      throw new AppError(502, "첨부파일을 저장하지 못했습니다.", "ATTACHMENT_STORAGE_FAILED");
+    }
   };
 
   const getMyOnlineCards = (userId: number): Promise<PortfolioSummary[]> =>
