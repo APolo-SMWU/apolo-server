@@ -133,8 +133,9 @@ export const createPortfolioService = (
       fetchSourceUpdates(sourceLinks, [], sourceFetcher, now),
       organizationName ? logoLookup(organizationName) : null,
     ]);
+    const { organizationAddress, ...generationUser } = user;
     const generationRequest = {
-      user: user as OnlineCardUserProfile,
+      user: generationUser as OnlineCardUserProfile,
       sources: sourceState.sources,
       ...(input.requirements === undefined ? {} : { requirements: input.requirements }),
     };
@@ -150,7 +151,7 @@ export const createPortfolioService = (
         userType,
         cardDesignId: input.cardDesignId,
         siteDesignId: input.siteDesignId,
-        card: asJson({ ...generated.card, logoUrl }),
+        card: asJson({ ...generated.card, organizationAddress, logoUrl }),
         profile: asJson(generated.profile),
         blocks: asJson(generated.blocks),
         sourceLinks: asJson(sourceLinks),

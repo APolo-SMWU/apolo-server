@@ -17,7 +17,6 @@ const userSelect = {
   university: true,
   department: true,
   major: true,
-  organizationAddress: true,
   onboardingCompleted: true,
   createdAt: true,
   updatedAt: true,
@@ -52,7 +51,6 @@ type OrganizationProfile = {
   role: string | null;
   company: string | null;
   university: string | null;
-  organizationAddress: string | null;
 };
 
 // 재직자는 회사, 교수·학생은 학교가 소속 기관이다.
@@ -60,27 +58,21 @@ export const organizationNameOf = ({
   role,
   company,
   university,
-}: Omit<OrganizationProfile, "organizationAddress">) => {
+}: OrganizationProfile) => {
   const name = role?.toLowerCase() === "professional" ? company : university;
   return name?.trim() || null;
 };
 
 /**
  * 저장할 organizationAddress를 정한다. undefined면 기존 값을 그대로 둔다.
- * 1. 사용자가 기존과 다른 주소를 보냈으면 조회하지 않고 그 값을 쓴다. ("" → null)
- * 2. 소속 기관(회사·학교)이 바뀌었으면 새로 조회한다. 조회 실패 시 null.
- * 3. 둘 다 아니면 기존 주소를 유지한다.
+ * 소속 기관(회사·학교)이 바뀌었으면 자동 조회한다. 조회 실패 시 null.
+ * 주소는 내부 저장용이며 프로필 API의 입력·응답에는 포함하지 않는다.
  */
 export const resolveOrganizationAddress = async (
   current: OrganizationProfile,
   input: OnboardingInput | ProfileInput,
   lookup = lookupOrganizationAddress,
 ): Promise<string | null | undefined> => {
-  if (input.organizationAddress !== undefined) {
-    const requested = input.organizationAddress || null;
-    if (requested !== current.organizationAddress) return requested;
-  }
-
   const nextOrganization = organizationNameOf({
     role: input.role,
     company: input.company ?? null,
@@ -105,7 +97,6 @@ export const completeOnboarding = async (
       role: true,
       company: true,
       university: true,
-      organizationAddress: true,
     },
   });
 
