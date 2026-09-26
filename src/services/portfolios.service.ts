@@ -28,6 +28,8 @@ import {
   type OnlineCardAiProvider,
   type OnlineCardUserProfile,
 } from "./ai.service";
+import { lookupOrganizationLogo } from "./logo-lookup.service";
+import { organizationNameOf } from "./users.service";
 
 const summarySelect = {
   id: true,
@@ -50,6 +52,7 @@ interface PortfolioServiceDependencies {
   sourceFetcher: SourceFetcher;
   createId: IdFactory;
   now: Clock;
+  logoLookup: (organizationName: string) => Promise<string | null>;
 }
 
 const ownershipError = () =>
@@ -83,6 +86,7 @@ export const createPortfolioService = (
   const sourceFetcher = overrides.sourceFetcher ?? defaultSourceFetcher;
   const createId = overrides.createId ?? randomUUID;
   const now = overrides.now ?? (() => new Date());
+  const logoLookup = overrides.logoLookup ?? lookupOrganizationLogo;
 
   const getOwnedOnlineCard = async (
     userId: number,
@@ -123,12 +127,12 @@ export const createPortfolioService = (
 
     const userType = mapUserType(user.role);
     const sourceLinks = normalizeSourceLinks(input.externalLinks);
-    const sourceState = await fetchSourceUpdates(
-      sourceLinks,
-      [],
-      sourceFetcher,
-      now,
-    );
+    const organizationName = organizationNameOf(user);
+    // 명함 로고는 AI가 아니라 Backend가 채우며, 외부 소스 수집과 동시에 조회한다.
+    const [sourceState, logoUrl] = await Promise.all([
+      fetchSourceUpdates(sourceLinks, [], sourceFetcher, now),
+      organizationName ? logoLookup(organizationName) : null,
+    ]);
     const { organizationAddress, ...generationUser } = user;
     const generationRequest = {
       user: generationUser as OnlineCardUserProfile,
@@ -147,7 +151,7 @@ export const createPortfolioService = (
         userType,
         cardDesignId: input.cardDesignId,
         siteDesignId: input.siteDesignId,
-        card: asJson({ ...generated.card, organizationAddress }),
+        card: asJson({ ...generated.card, organizationAddress, logoUrl }),
         profile: asJson(generated.profile),
         blocks: asJson(generated.blocks),
         sourceLinks: asJson(sourceLinks),
