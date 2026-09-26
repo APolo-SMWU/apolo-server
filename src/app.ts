@@ -8,14 +8,13 @@ import authRoutes from "./routes/auth.routes";
 import portfoliosRoutes from "./routes/portfolios.routes";
 import sharedRoutes from "./routes/shared.routes";
 import usersRoutes from "./routes/users.routes";
+import { getCorsOrigins } from "./config/cors";
 
 const app = express();
 
-const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:5173";
-
 app.use(
   cors({
-    origin: corsOrigin,
+    origin: getCorsOrigins(),
     credentials: true,
   })
 );
