@@ -14,7 +14,6 @@ export interface OnlineCardUserProfile {
   university: string | null;
   department: string | null;
   major: string | null;
-  organizationAddress: string | null;
 }
 
 export interface GenerationRequest {
@@ -79,7 +78,8 @@ const localProvider: OnlineCardAiProvider = {
         headline,
         phone: user.phone,
         email: user.email,
-        organizationAddress: user.organizationAddress,
+        // 실제 주소는 Backend가 생성 결과에 내부 DB 값으로 채운다.
+        organizationAddress: null,
       },
       profile: {
         name: user.name,
