@@ -11,8 +11,12 @@ const httpUrlSchema = z
   .string()
   .url("올바른 URL 형식이 아닙니다.")
   .refine((value) => {
-    const protocol = new URL(value).protocol;
-    return protocol === "http:" || protocol === "https:";
+    try {
+      const protocol = new URL(value).protocol;
+      return protocol === "http:" || protocol === "https:";
+    } catch {
+      return false;
+    }
   }, "HTTP 또는 HTTPS URL만 사용할 수 있습니다.");
 
 const generatedIdSchema = z.string().uuid().optional();
