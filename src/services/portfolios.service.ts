@@ -114,6 +114,7 @@ export const createPortfolioService = (
         university: true,
         department: true,
         major: true,
+        organizationAddress: true,
       },
     });
     if (!user) {
@@ -128,8 +129,9 @@ export const createPortfolioService = (
       sourceFetcher,
       now,
     );
+    const { organizationAddress, ...generationUser } = user;
     const generationRequest = {
-      user: user as OnlineCardUserProfile,
+      user: generationUser as OnlineCardUserProfile,
       sources: sourceState.sources,
       ...(input.requirements === undefined ? {} : { requirements: input.requirements }),
     };
@@ -145,7 +147,7 @@ export const createPortfolioService = (
         userType,
         cardDesignId: input.cardDesignId,
         siteDesignId: input.siteDesignId,
-        card: asJson(generated.card),
+        card: asJson({ ...generated.card, organizationAddress }),
         profile: asJson(generated.profile),
         blocks: asJson(generated.blocks),
         sourceLinks: asJson(sourceLinks),

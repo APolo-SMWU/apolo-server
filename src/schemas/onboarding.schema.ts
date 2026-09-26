@@ -17,7 +17,7 @@ const profileFieldsSchema = z.object({
   university: optionalText,
   department: optionalText,
   major: optionalText,
-});
+}).strict();
 
 const validateRoleFields = (
   data: z.infer<typeof profileFieldsSchema>,
