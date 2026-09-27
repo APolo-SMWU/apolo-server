@@ -55,6 +55,8 @@ model Portfolio {
   card            Json
   profile         Json
   blocks          Json
+  aiMeta          Json?
+  aiWarnings      Json?
   sourceLinks     Json
   sourceSnapshots Json
   schemaVersion   Int              @default(1)

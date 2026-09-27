@@ -1,3 +1,4 @@
+import { toPortfolioResponse } from "../services/portfolio-response";
 import type { Request, Response } from "express";
 import type { AuthRequest } from "../middlewares/auth.middleware";
 import { AppError } from "../errors/app-error";
@@ -23,17 +24,28 @@ export const createPortfolioController = async (req: AuthRequest, res: Response)
     size: file.size,
   }));
   const portfolio = await createOnlineCard(requireUser(req), parsePortfolioGenerationInput(req.body), attachments);
-  return res.status(201).json({ message: "온라인 명함 생성 성공", portfolio: await withSignedAvatarUrl(portfolio) });
+  return res.status(201).json({
+    message: "온라인 명함 생성 성공",
+    portfolio: toPortfolioResponse(await withSignedAvatarUrl(portfolio)),
+  });
 };
 export const getMyPortfoliosController = async (req: AuthRequest, res: Response) =>
   res.status(200).json({ message: "내 온라인 명함 목록 조회 성공", portfolios: await getMyOnlineCards(requireUser(req)) });
 export const getPortfolioByIdController = async (req: AuthRequest, res: Response) => {
   const { portfolioId } = validateRequest(portfolioIdParamSchema, req.params);
-  return res.status(200).json({ message: "온라인 명함 상세 조회 성공", portfolio: await withSignedAvatarUrl(await getOwnedOnlineCard(requireUser(req), portfolioId)) });
+  return res.status(200).json({
+    message: "온라인 명함 상세 조회 성공",
+    portfolio: toPortfolioResponse(await withSignedAvatarUrl(await getOwnedOnlineCard(requireUser(req), portfolioId))),
+  });
 };
 export const updatePortfolioController = async (req: AuthRequest, res: Response) => {
   const { portfolioId } = validateRequest(portfolioIdParamSchema, req.params);
-  return res.status(200).json({ message: "온라인 명함 수정 성공", portfolio: await withSignedAvatarUrl(await updateOnlineCard(requireUser(req), portfolioId, validateRequest(updatePortfolioSchema, req.body))) });
+  return res.status(200).json({
+    message: "온라인 명함 수정 성공",
+    portfolio: toPortfolioResponse(await withSignedAvatarUrl(
+      await updateOnlineCard(requireUser(req), portfolioId, validateRequest(updatePortfolioSchema, req.body)),
+    )),
+  });
 };
 export const deletePortfolioController = async (req: AuthRequest, res: Response) => {
   const { portfolioId } = validateRequest(portfolioIdParamSchema, req.params);
@@ -43,7 +55,12 @@ export const deletePortfolioController = async (req: AuthRequest, res: Response)
 export const updateContentController = async (req: AuthRequest, res: Response) => {
   const { portfolioId } = validateRequest(portfolioIdParamSchema, req.params);
   validateRequest(updateContentSchema, req.body);
-  return res.status(200).json({ message: "외부 콘텐츠 갱신 성공", portfolio: await withSignedAvatarUrl(await refreshOnlineCardContent(requireUser(req), portfolioId)) });
+  return res.status(200).json({
+    message: "외부 콘텐츠 갱신 성공",
+    portfolio: toPortfolioResponse(await withSignedAvatarUrl(
+      await refreshOnlineCardContent(requireUser(req), portfolioId),
+    )),
+  });
 };
 export const createShareController = async (req: AuthRequest, res: Response) => {
   const { portfolioId } = validateRequest(portfolioIdParamSchema, req.params);
@@ -63,5 +80,8 @@ export const getPortfolioAvatarController = async (req: AuthRequest, res: Respon
 };
 export const getSharedController = async (req: Request, res: Response) => {
   const { shareId } = validateRequest(shareIdParamSchema, req.params);
-  return res.status(200).json({ message: "공유 온라인 명함 조회 성공", portfolio: await withSignedAvatarUrl(await getSharedOnlineCard(shareId)) });
+  return res.status(200).json({
+    message: "공유 온라인 명함 조회 성공",
+    portfolio: toPortfolioResponse(await withSignedAvatarUrl(await getSharedOnlineCard(shareId))),
+  });
 };

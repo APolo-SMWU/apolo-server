@@ -46,16 +46,19 @@ export const aboutBlockSchema = z
   })
   .strict();
 
-const timelineDateSchema = z
-  .string()
-  .regex(/^\d{4}(?:\.(?:0[1-9]|1[0-2]))?$/, "날짜는 YYYY 또는 YYYY.MM 형식이어야 합니다.");
+// 날짜 미입력은 빈 문자열로 표현하고, 입력된 날짜는 기존 형식을 검증한다.
+const timelineDateSchema = z.union([
+  z.literal(""),
+  z.string().regex(/^\d{4}(?:\.(?:0[1-9]|1[0-2]))?$/, "날짜는 YYYY 또는 YYYY.MM 형식이어야 합니다."),
+]);
 
 export const timelineItemSchema = z
   .object({
     id: generatedIdSchema,
+    entityId: requiredString("KG Entity ID", 200).optional(),
     startDate: timelineDateSchema,
     endDate: z.union([timelineDateSchema, z.literal("Present")]).optional(),
-    organization: requiredString("소속", 200),
+    organization: z.string().trim().max(200),
     role: requiredString("역할", 200).optional(),
     description: requiredString("설명", 10_000).optional(),
     kind: z
@@ -90,6 +93,7 @@ export const timelineBlockSchema = z
 export const workItemSchema = z
   .object({
     id: generatedIdSchema,
+    entityId: requiredString("KG Entity ID", 200).optional(),
     kind: z.enum(["project", "publication", "opensource"]),
     title: requiredString("작업 제목", 200),
     role: requiredString("역할", 200).optional(),
@@ -178,7 +182,7 @@ const profileFieldSchema = z.discriminatedUnion("kind", [
 
 const profileFields = {
   name: requiredString("이름", 100),
-  title: requiredString("프로필 제목", 200),
+  title: z.string().trim().max(200, "프로필 제목은(는) 200자 이하로 작성해주세요."),
   avatarUrl: avatarReferenceSchema.nullable(),
   fields: z.array(profileFieldSchema),
 };

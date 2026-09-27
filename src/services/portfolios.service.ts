@@ -1,6 +1,9 @@
+import { toGenerateRequest } from "./ai-generate.mapper";
+import { buildInitialPortfolioProfile } from "./portfolio-profile.service";
 import { randomUUID } from "node:crypto";
 
-import type { Prisma, Portfolio, UserType } from "@prisma/client";
+import type { Prisma, Portfolio } from "@prisma/client";
+import { mapUserType } from "./ai-profile.mapper";
 import { AppError } from "../errors/app-error";
 import prisma from "../lib/prisma";
 import type {
@@ -16,7 +19,7 @@ import {
   fetchSourceUpdates,
   mergeRefreshedBlocks,
   normalizeBlocks,
-  normalizeGeneratedDocument,
+  normalizeGeneratedResponse,
   normalizeSourceLinks,
   parseRefreshedBlocks,
   type Clock,
@@ -26,7 +29,6 @@ import {
 import {
   onlineCardAiService,
   type OnlineCardAiProvider,
-  type OnlineCardUserProfile,
 } from "./ai.service";
 import { lookupOrganizationLogo } from "./logo-lookup.service";
 import { organizationNameOf } from "./users.service";
@@ -70,23 +72,6 @@ interface PortfolioServiceDependencies {
 
 const ownershipError = () =>
   new AppError(404, "온라인 명함을 찾을 수 없습니다.", "NOT_FOUND");
-
-const mapUserType = (role: string | null): UserType => {
-  switch (role?.toLocaleLowerCase()) {
-    case "student":
-      return "student";
-    case "professor":
-      return "professor";
-    case "professional":
-      return "professional";
-    default:
-      throw new AppError(
-        422,
-        "온라인 명함 생성 전에 사용자 유형을 등록해주세요.",
-        "PROFILE_INCOMPLETE",
-      );
-  }
-};
 
 const asJson = (value: unknown): Prisma.InputJsonValue =>
   value as Prisma.InputJsonValue;
@@ -141,23 +126,16 @@ export const createPortfolioService = (
     }
 
     const userType = mapUserType(user.role);
+    const { card, profile } = buildInitialPortfolioProfile(user);
     const sourceLinks = normalizeSourceLinks(input.externalLinks);
+    // 외부 소스 수집은 AI가 담당하고, 명함 로고는 Backend가 별도로 조회한다.
+    const generationRequest = toGenerateRequest(user, { ...input, externalLinks: sourceLinks });
     const organizationName = organizationNameOf(user);
-    // 명함 로고는 AI가 아니라 Backend가 채우며, 외부 소스 수집과 동시에 조회한다.
-    const [sourceState, logoUrl] = await Promise.all([
-      fetchSourceUpdates(sourceLinks, [], sourceFetcher, now),
+    const [aiResult, logoUrl] = await Promise.all([
+      ai.generate(generationRequest),
       organizationName ? logoLookup(organizationName) : null,
     ]);
-    const { organizationAddress, ...generationUser } = user;
-    const generationRequest = {
-      user: generationUser as OnlineCardUserProfile,
-      sources: sourceState.sources,
-      ...(input.requirements === undefined ? {} : { requirements: input.requirements }),
-    };
-    const generated = normalizeGeneratedDocument(
-      await ai.generate(generationRequest),
-      createId,
-    );
+    const generated = normalizeGeneratedResponse(aiResult, createId);
 
     const portfolio = await db.portfolio.create({
       data: {
@@ -166,11 +144,13 @@ export const createPortfolioService = (
         userType,
         cardDesignId: input.cardDesignId,
         siteDesignId: input.siteDesignId,
-        card: asJson({ ...generated.card, organizationAddress, logoUrl }),
-        profile: asJson(mapUserProfileToPortfolioProfile(user, generated.profile)),
+        card: asJson({ ...card, logoUrl }),
+        profile: asJson(profile),
         blocks: asJson(generated.blocks),
+        aiMeta: asJson(generated.meta),
+        aiWarnings: asJson(generated.warnings),
         sourceLinks: asJson(sourceLinks),
-        sourceSnapshots: asJson(sourceState.snapshots),
+        sourceSnapshots: asJson([]),
         schemaVersion: 1,
         status: "draft",
       },
