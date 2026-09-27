@@ -19,6 +19,7 @@ export interface OnlineCardUserProfile {
 export interface UpdateContentRequest {
   userId: number;
   sourceLinks: string[];
+  requirements?: string;
 }
 
 export interface GeneratedOnlineCard {

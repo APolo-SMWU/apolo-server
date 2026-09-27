@@ -13,6 +13,7 @@ const portfolio = {
   userType: "student",
   cardDesignId: "card",
   siteDesignId: "site",
+  requirements: "프로젝트 중심",
   card: {},
   profile: {},
   blocks: [
@@ -68,6 +69,57 @@ const updatedResponse: GeneratedOnlineCard = {
   warnings: [{ code: "SOURCE_UPDATED", message: "새 Source를 반영했습니다." }],
 };
 
+describe("createOnlineCard", () => {
+  it("생성 요청의 requirements를 Portfolio에 저장한다", async () => {
+    const ai: OnlineCardAiProvider = {
+      generate: async () => updatedResponse,
+      updateContent: async () => updatedResponse,
+    };
+    const createdData: Record<string, unknown>[] = [];
+    const prisma = {
+      user: {
+        findUnique: async () => ({
+          id: 42,
+          email: "test@example.com",
+          name: "테스트 사용자",
+          role: "Student",
+          phone: "010-0000-0000",
+          github: null,
+          company: null,
+          jobTitle: null,
+          tel: null,
+          university: "테스트대학교",
+          department: null,
+          major: "컴퓨터과학",
+          organizationAddress: null,
+        }),
+      },
+      portfolio: {
+        create: async ({ data }: { data: Record<string, unknown> }) => {
+          createdData.push(data);
+          return { ...portfolio, id: 18 };
+        },
+        findUniqueOrThrow: async () => ({ ...portfolio, id: 18 }),
+      },
+    } as never;
+    const service = createPortfolioService({
+      prisma,
+      ai,
+      logoLookup: async () => null,
+    });
+
+    await service.createOnlineCard(42, {
+      title: "요구사항 저장 테스트",
+      cardDesignId: "card",
+      siteDesignId: "site",
+      externalLinks: ["https://github.com/example/apolo"],
+      requirements: "프로젝트 중심으로 구성",
+    });
+
+    assert.equal(createdData[0]?.requirements, "프로젝트 중심으로 구성");
+  });
+});
+
 describe("refreshOnlineCardContent", () => {
   it("AI에 Source 링크를 전달하고 기존 blocks와 갱신 결과를 병합한다", async () => {
     const calls: unknown[] = [];
@@ -93,7 +145,11 @@ describe("refreshOnlineCardContent", () => {
     const result = await service.refreshOnlineCardContent(42, 17);
 
     assert.deepEqual(calls, [
-      { userId: 42, sourceLinks: ["https://github.com/example/apolo"] },
+      {
+        userId: 42,
+        sourceLinks: ["https://github.com/example/apolo"],
+        requirements: "프로젝트 중심",
+      },
     ]);
     assert.equal(updates.length, 1);
     const data = updates[0] as {
