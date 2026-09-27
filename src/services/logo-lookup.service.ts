@@ -122,8 +122,16 @@ const findHomepageIcon = async (homepage: string): Promise<string | null> => {
   return size && Math.min(size.width, size.height) >= MIN_ICON_SIZE ? icon.url : null;
 };
 
+export const selectPreferredLogoUrl = ({
+  homepageIconUrl,
+  wikidataLogoUrl,
+}: {
+  homepageIconUrl: string | null;
+  wikidataLogoUrl: string | null;
+}): string | null => homepageIconUrl ?? wikidataLogoUrl;
+
 /**
- * 소속 기관 로고 URL을 찾는다. 위키데이터 공식 로고 → 공식 홈페이지 아이콘 순.
+ * 소속 기관 로고 URL을 찾는다. 공식 홈페이지 아이콘 → 위키데이터 공식 로고 순.
  * 실패·결과 없음은 null로 처리하여 명함 생성을 계속한다.
  */
 export const lookupOrganizationLogo = async (
@@ -145,7 +153,8 @@ export const lookupOrganizationLogo = async (
     }
     const links = selectOrganizationLinks(JSON.parse(response.body.toString("utf8")));
     if (!links) return null;
-    return links.logoUrl ?? (links.homepage ? await findHomepageIcon(links.homepage) : null);
+    const homepageIconUrl = links.homepage ? await findHomepageIcon(links.homepage) : null;
+    return selectPreferredLogoUrl({ homepageIconUrl, wikidataLogoUrl: links.logoUrl });
   } catch {
     console.warn("[logo-lookup] 로고 조회 응답 오류 또는 연결 실패");
     return null;
