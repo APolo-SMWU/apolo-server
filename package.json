@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "tsx src/server.ts",
     "build": "tsc",
+    "db:migrate": "prisma migrate deploy",
     "start": "node dist/server.js",
     "test": "node --import tsx --test \"src/**/*.test.ts\""
   },
