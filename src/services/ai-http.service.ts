@@ -1,9 +1,18 @@
 import { AppError } from "../errors/app-error";
 import { generateResponseSchema } from "../schemas/ai-generate.schema";
 import type { GenerateRequest } from "./ai-generate.mapper";
+import type { UpdateContentRequest } from "./ai.service";
 
-/** Backend에서만 호출한다. URL은 사용자 입력이 아닌 서버 환경변수로 지정한다. */
-export const generateViaHttp = async (request: GenerateRequest) => {
+type JsonSchema<T> = {
+  safeParse(value: unknown): { success: true; data: T } | { success: false };
+};
+
+const postAiJson = async <T>(
+  path: string,
+  request: unknown,
+  schema: JsonSchema<T>,
+  requestFailureMessage: string,
+): Promise<T> => {
   let url: URL;
   const timeoutMs = Number(process.env.AI_TIMEOUT_MS ?? "30000");
   try {
@@ -11,7 +20,7 @@ export const generateViaHttp = async (request: GenerateRequest) => {
     if (!["http:", "https:"].includes(base.protocol) || base.username || base.password) {
       throw new Error("Invalid configuration");
     }
-    url = new URL("/generate", base);
+    url = new URL(path, base);
     if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 2147483647) {
       throw new Error("Invalid timeout");
     }
@@ -30,7 +39,7 @@ export const generateViaHttp = async (request: GenerateRequest) => {
     });
     if (!response.ok) {
       await response.body?.cancel();
-      throw new AppError(502, "AI 서버가 생성 요청을 처리하지 못했습니다.", "AI_REQUEST_FAILED");
+      throw new AppError(502, requestFailureMessage, "AI_REQUEST_FAILED");
     }
     let body: unknown;
     try {
@@ -39,7 +48,7 @@ export const generateViaHttp = async (request: GenerateRequest) => {
       if (signal.aborted) throw error;
       throw new AppError(502, "AI 서버의 응답 형식이 올바르지 않습니다.", "INVALID_AI_RESPONSE");
     }
-    const result = generateResponseSchema.safeParse(body);
+    const result = schema.safeParse(body);
     if (!result.success) {
       throw new AppError(502, "AI 서버의 응답 형식이 올바르지 않습니다.", "INVALID_AI_RESPONSE");
     }
@@ -52,3 +61,20 @@ export const generateViaHttp = async (request: GenerateRequest) => {
     throw new AppError(502, "AI 서버에 연결할 수 없습니다.", "AI_UNAVAILABLE");
   }
 };
+
+/** Backend에서만 호출한다. URL은 사용자 입력이 아닌 서버 환경변수로 지정한다. */
+export const generateViaHttp = (request: GenerateRequest) =>
+  postAiJson(
+    "/generate",
+    request,
+    generateResponseSchema,
+    "AI 서버가 생성 요청을 처리하지 못했습니다.",
+  );
+
+export const updateContentViaHttp = (request: UpdateContentRequest) =>
+  postAiJson(
+    "/update-content",
+    request,
+    generateResponseSchema,
+    "AI 서버가 콘텐츠 갱신 요청을 처리하지 못했습니다.",
+  );

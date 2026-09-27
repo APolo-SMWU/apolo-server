@@ -15,16 +15,11 @@ import {
   profileSchema,
 } from "../schemas/portfolio.schema";
 import {
-  defaultSourceFetcher,
-  fetchSourceUpdates,
   mergeRefreshedBlocks,
   normalizeBlocks,
   normalizeGeneratedResponse,
   normalizeSourceLinks,
-  parseRefreshedBlocks,
-  type Clock,
   type IdFactory,
-  type SourceFetcher,
 } from "./portfolio-content.service";
 import {
   onlineCardAiService,
@@ -64,9 +59,7 @@ export type PortfolioSummary = Prisma.PortfolioGetPayload<{
 interface PortfolioServiceDependencies {
   prisma: typeof prisma;
   ai: OnlineCardAiProvider;
-  sourceFetcher: SourceFetcher;
   createId: IdFactory;
-  now: Clock;
   logoLookup: (organizationName: string) => Promise<string | null>;
 }
 
@@ -81,9 +74,7 @@ export const createPortfolioService = (
 ) => {
   const db = overrides.prisma ?? prisma;
   const ai = overrides.ai ?? onlineCardAiService;
-  const sourceFetcher = overrides.sourceFetcher ?? defaultSourceFetcher;
   const createId = overrides.createId ?? randomUUID;
-  const now = overrides.now ?? (() => new Date());
   const logoLookup = overrides.logoLookup ?? lookupOrganizationLogo;
 
   const getOwnedOnlineCard = async (
@@ -250,36 +241,17 @@ export const createPortfolioService = (
     portfolioId: number,
   ): Promise<Portfolio> => {
     const existing = await getOwnedOnlineCard(userId, portfolioId);
-    const sourceState = await fetchSourceUpdates(
-      existing.sourceLinks,
-      existing.sourceSnapshots,
-      sourceFetcher,
-      now,
-    );
-
-    let blocks = normalizeBlocks(existing.blocks, createId);
-    if (sourceState.changedSources.length > 0) {
-      const refreshed = await ai.refresh({
-        portfolio: {
-          title: existing.title,
-          card: existing.card,
-          profile: existing.profile,
-          blocks: existing.blocks,
-        },
-        changedSources: sourceState.changedSources,
-      });
-      blocks = mergeRefreshedBlocks(
-        blocks,
-        parseRefreshedBlocks(refreshed),
-        createId,
-      );
-    }
+    const sourceLinks = normalizeSourceLinks(existing.sourceLinks);
+    const updated = await ai.updateContent({ userId, sourceLinks });
+    const normalized = normalizeGeneratedResponse(updated, createId);
+    const blocks = mergeRefreshedBlocks(existing.blocks, updated.blocks, createId);
 
     return db.portfolio.update({
       where: { id: portfolioId },
       data: {
         blocks: asJson(blocks),
-        sourceSnapshots: asJson(sourceState.snapshots),
+        aiMeta: asJson(normalized.meta),
+        aiWarnings: asJson(normalized.warnings),
       },
     });
   };
