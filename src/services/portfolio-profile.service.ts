@@ -28,6 +28,7 @@ export const buildInitialPortfolioProfile = (
     name: user.name,
     headline,
     phone: user.phone,
+    tel: user.tel,
     email: user.email,
     organizationAddress: user.organizationAddress,
   });
@@ -44,5 +45,6 @@ export const buildInitialPortfolioProfile = (
       "PROFILE_INCOMPLETE",
     );
   }
-  return { card: card.data, profile: profile.data };
+  // 새 명함에는 tel 키를 항상 포함하고, 기존 명함의 누락 가능성은 타입에서 허용한다.
+  return { card: { ...card.data, tel: card.data.tel ?? null }, profile: profile.data };
 };
