@@ -1,32 +1,19 @@
 import { generateResponseSchema, type AiGenerateResponse } from "../schemas/ai-generate.schema";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 
 import { z } from "zod";
 import { AppError } from "../errors/app-error";
-import {
-  contentBlockSchema,
-  sourceSnapshotSchema,
-} from "../schemas/portfolio.schema";
+import { contentBlockSchema } from "../schemas/portfolio.schema";
 import type {
   ContentBlock,
-  SourceSnapshot,
   TimelineBlock,
   TimelineItem,
   WorkItem,
 } from "../types/portfolio";
-import { BlockedUrlError, fetchPublic, ResponseTooLargeError } from "../utils/public-http";
 
-export interface FetchedSource {
-  url: string;
-  content: string;
-}
-
-export type SourceFetcher = (url: string) => Promise<FetchedSource>;
 export type IdFactory = () => string;
-export type Clock = () => Date;
 
 const blocksSchema = z.array(contentBlockSchema);
-const snapshotsSchema = z.array(sourceSnapshotSchema);
 
 const invalidData = (message: string, errorCode = "INVALID_PORTFOLIO_DATA") =>
   new AppError(500, message, errorCode);
@@ -143,78 +130,6 @@ export const normalizeGeneratedResponse = (
   };
 };
 
-export const parseRefreshedBlocks = (
-  value: unknown,
-): z.infer<typeof contentBlockSchema>[] => {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw invalidData("AI 갱신 결과 형식이 올바르지 않습니다.", "INVALID_AI_RESPONSE");
-  }
-  return parseWithAppError(
-    blocksSchema,
-    (value as Record<string, unknown>).blocks,
-    "AI가 갱신한 콘텐츠 형식이 올바르지 않습니다.",
-    "INVALID_AI_RESPONSE",
-  );
-};
-
-export const parsePersistedSnapshots = (value: unknown): SourceSnapshot[] =>
-  parseWithAppError(
-    snapshotsSchema,
-    value,
-    "저장된 소스 스냅샷 형식이 올바르지 않습니다.",
-    "INVALID_PORTFOLIO_DATA",
-  );
-
-export const hashSourceContent = (content: string): string =>
-  `sha256:${createHash("sha256").update(content).digest("hex")}`;
-
-export interface SourceRefreshResult {
-  sources: FetchedSource[];
-  changedSources: FetchedSource[];
-  snapshots: SourceSnapshot[];
-}
-
-export const fetchSourceUpdates = async (
-  linksValue: unknown,
-  snapshotsValue: unknown,
-  sourceFetcher: SourceFetcher,
-  now: Clock = () => new Date(),
-): Promise<SourceRefreshResult> => {
-  const links = normalizeSourceLinks(linksValue);
-  const previousSnapshots = parsePersistedSnapshots(snapshotsValue);
-  const previousHashes = new Map(
-    previousSnapshots.map((snapshot) => [snapshot.url, snapshot.contentHash]),
-  );
-
-  let sources: FetchedSource[];
-  try {
-    sources = await Promise.all(
-      links.map(async (url) => {
-        const fetched = await sourceFetcher(url);
-        if (!fetched || typeof fetched.content !== "string") {
-          throw new Error("Source fetcher returned invalid content");
-        }
-        return { url, content: fetched.content };
-      }),
-    );
-  } catch (error) {
-    if (error instanceof AppError) throw error;
-    throw new AppError(502, "외부 소스를 가져오지 못했습니다.", "SOURCE_FETCH_FAILED");
-  }
-
-  const fetchedAt = now().toISOString();
-  const snapshots = sources.map(({ url, content }) => ({
-    url,
-    contentHash: hashSourceContent(content),
-    lastFetchedAt: fetchedAt,
-  }));
-  const changedSources = sources.filter(
-    ({ url, content }) => previousHashes.get(url) !== hashSourceContent(content),
-  );
-
-  return { sources, changedSources, snapshots };
-};
-
 const normalized = (value: string | undefined) => value?.trim().toLowerCase() ?? "";
 
 const timelineItemKey = (blockType: string, item: {
@@ -307,33 +222,4 @@ export const mergeRefreshedBlocks = (
   }
 
   return current;
-};
-
-const SOURCE_TIMEOUT_MS = 10_000;
-const SOURCE_MAX_BYTES = 5 * 1024 * 1024;
-
-const rejectedSource = (url: string, message: string, errorCode: string) =>
-  new AppError(422, message, errorCode, [{ field: "externalLinks", message: url }]);
-
-export const defaultSourceFetcher: SourceFetcher = async (url) => {
-  let response;
-  try {
-    response = await fetchPublic(url, {
-      timeoutMs: SOURCE_TIMEOUT_MS,
-      maxBytes: SOURCE_MAX_BYTES,
-      headers: { accept: "text/html,application/json,text/plain" },
-    });
-  } catch (error) {
-    if (error instanceof BlockedUrlError) {
-      throw rejectedSource(url, "내부 네트워크 주소는 외부 링크로 사용할 수 없습니다.", "SOURCE_URL_NOT_ALLOWED");
-    }
-    if (error instanceof ResponseTooLargeError) {
-      throw rejectedSource(url, "외부 링크의 내용이 너무 큽니다.", "SOURCE_TOO_LARGE");
-    }
-    throw error;
-  }
-  if (response.status < 200 || response.status >= 300) {
-    throw new Error(`Source request failed with ${response.status}`);
-  }
-  return { url, content: response.body.toString("utf8") };
 };

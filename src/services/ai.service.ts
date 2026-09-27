@@ -1,6 +1,5 @@
-import { generateViaHttp } from "./ai-http.service";
+import { generateViaHttp, updateContentViaHttp } from "./ai-http.service";
 import type { GenerateRequest } from "./ai-generate.mapper";
-import type { FetchedSource } from "./portfolio-content.service";
 
 export interface OnlineCardUserProfile {
   id: number;
@@ -17,14 +16,9 @@ export interface OnlineCardUserProfile {
   major: string | null;
 }
 
-export interface RefreshRequest {
-  portfolio: {
-    title: string;
-    card: unknown;
-    profile: unknown;
-    blocks: unknown;
-  };
-  changedSources: FetchedSource[];
+export interface UpdateContentRequest {
+  userId: number;
+  sourceLinks: string[];
 }
 
 export interface GeneratedOnlineCard {
@@ -33,20 +27,14 @@ export interface GeneratedOnlineCard {
   warnings: unknown;
 }
 
-export interface RefreshedOnlineCard {
-  blocks: unknown;
-}
-
 export interface OnlineCardAiProvider {
   generate(request: GenerateRequest): Promise<GeneratedOnlineCard>;
-  refresh(request: RefreshRequest): Promise<RefreshedOnlineCard>;
+  updateContent(request: UpdateContentRequest): Promise<GeneratedOnlineCard>;
 }
 
 const httpProvider: OnlineCardAiProvider = {
   generate: generateViaHttp,
-  async refresh() {
-    return { blocks: [] };
-  },
+  updateContent: updateContentViaHttp,
 };
 
 let activeProvider: OnlineCardAiProvider = httpProvider;
@@ -61,5 +49,5 @@ export const resetOnlineCardAiProvider = () => {
 
 export const onlineCardAiService: OnlineCardAiProvider = {
   generate: (request) => activeProvider.generate(request),
-  refresh: (request) => activeProvider.refresh(request),
+  updateContent: (request) => activeProvider.updateContent(request),
 };

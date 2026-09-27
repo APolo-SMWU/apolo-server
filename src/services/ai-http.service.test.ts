@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 
 import { AppError } from "../errors/app-error";
-import { generateViaHttp } from "./ai-http.service";
+import { generateViaHttp, updateContentViaHttp } from "./ai-http.service";
 import type { GenerateRequest } from "./ai-generate.mapper";
+import type { UpdateContentRequest } from "./ai.service";
 
 const originalFetch = globalThis.fetch;
 const originalBaseUrl = process.env.AI_BASE_URL;
@@ -34,6 +35,11 @@ const validResponse = {
   blocks: [],
   meta: { ontologySchemaVersion: "1.1", knowledgeGraphVersion: 0 },
   warnings: [],
+};
+
+const updateRequest: UpdateContentRequest = {
+  userId: 900000003,
+  sourceLinks: ["https://example.com/source"],
 };
 
 afterEach(() => {
@@ -72,6 +78,31 @@ describe("generateViaHttp", () => {
 
     await assert.rejects(generateViaHttp(request), (error: unknown) =>
       error instanceof AppError && error.errorCode === "AI_REQUEST_FAILED"
+    );
+  });
+});
+
+describe("updateContentViaHttp", () => {
+  it("/update-content에 Source 링크와 사용자 ID를 전달한다", async () => {
+    process.env.AI_BASE_URL = "http://ai.test";
+    globalThis.fetch = async (input, init) => {
+      assert.equal(input.toString(), "http://ai.test/update-content");
+      assert.equal(init?.method, "POST");
+      assert.deepEqual(JSON.parse(String(init?.body)), updateRequest);
+      return new Response(JSON.stringify(validResponse), { status: 200 });
+    };
+
+    const result = await updateContentViaHttp(updateRequest);
+
+    assert.deepEqual(result, validResponse);
+  });
+
+  it("/update-content 응답도 기존 Graph B 계약으로 검증한다", async () => {
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ blocks: [], meta: {}, warnings: [] }), { status: 200 });
+
+    await assert.rejects(updateContentViaHttp(updateRequest), (error: unknown) =>
+      error instanceof AppError && error.errorCode === "INVALID_AI_RESPONSE"
     );
   });
 });
