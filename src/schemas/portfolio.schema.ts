@@ -140,6 +140,8 @@ export const businessCardSchema = z
     name: requiredString("이름", 100),
     headline: requiredString("헤드라인", 200),
     phone: requiredString("전화번호", 50),
+    // 기관·유선 전화. 기존 명함과의 호환을 위해 선택적 nullable로 둔다.
+    tel: z.string().trim().max(200).nullable().optional(),
     email: z.string().email("올바른 이메일 형식이 아닙니다."),
     organizationAddress: z.string().trim().max(500).nullable(),
     // 명함 생성 시 Backend가 조회한다. 이전에 만든 명함에는 없을 수 있다.

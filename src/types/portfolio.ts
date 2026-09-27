@@ -6,6 +6,8 @@ export interface BusinessCardData {
   name: string;
   headline: string;
   phone: string;
+  /** 기관·유선 전화. 기존 명함에는 없을 수 있다. */
+  tel?: string | null;
   email: string;
   organizationAddress: string | null;
   logoUrl?: string | null | undefined;

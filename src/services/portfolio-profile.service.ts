@@ -3,6 +3,12 @@ import { businessCardSchema, profileSchema } from "../schemas/portfolio.schema";
 import type { BusinessCardData, ProfileData, ProfileField } from "../types/portfolio";
 import type { OnlineCardUserProfile } from "./ai.service";
 
+const withHeadlineSuffix = (value: string | null, suffix: string) => {
+  const normalized = value?.trim();
+  if (!normalized) return null;
+  return normalized.endsWith(suffix) ? normalized : `${normalized} ${suffix}`;
+};
+
 /** 최초 생성 전용. 기존 포트폴리오의 사용자 편집값에는 적용하지 않는다. */
 export const buildInitialPortfolioProfile = (
   user: OnlineCardUserProfile & { organizationAddress: string | null },
@@ -15,7 +21,15 @@ export const buildInitialPortfolioProfile = (
     );
   }
 
-  const headline = user.jobTitle || user.major || user.department || user.role || "Professional";
+  const role = user.role?.toLowerCase();
+  const headline =
+    role === "professional"
+      ? user.jobTitle?.trim() || "Professional"
+      : role === "professor"
+        ? withHeadlineSuffix(user.department, "교수") || "Professor"
+        : role === "student"
+          ? withHeadlineSuffix(user.major, "학생") || "Student"
+          : "Professional";
   const fields: ProfileField[] = [
     { kind: "email", label: "Email", value: user.email },
     { kind: "phone", label: "Phone", value: user.phone },
@@ -28,6 +42,7 @@ export const buildInitialPortfolioProfile = (
     name: user.name,
     headline,
     phone: user.phone,
+    tel: user.tel,
     email: user.email,
     organizationAddress: user.organizationAddress,
   });
@@ -44,5 +59,6 @@ export const buildInitialPortfolioProfile = (
       "PROFILE_INCOMPLETE",
     );
   }
-  return { card: card.data, profile: profile.data };
+  // 새 명함에는 tel 키를 항상 포함하고, 기존 명함의 누락 가능성은 타입에서 허용한다.
+  return { card: { ...card.data, tel: card.data.tel ?? null }, profile: profile.data };
 };
