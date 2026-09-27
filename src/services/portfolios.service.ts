@@ -118,7 +118,7 @@ export const createPortfolioService = (
 
     const sourceLinks = normalizeSourceLinks(input.externalLinks);
     const userType = mapUserType(user.role);
-    const { card, profile } = buildInitialPortfolioProfile(user, sourceLinks);
+    const { card, profile } = buildInitialPortfolioProfile(user);
 
     const generationRequest = toGenerateRequest(user, { ...input, externalLinks: sourceLinks });
     const organizationName = organizationNameOf(user);
