@@ -135,6 +135,7 @@ export const createPortfolioService = (
         userType,
         cardDesignId: input.cardDesignId,
         siteDesignId: input.siteDesignId,
+        requirements: input.requirements ?? null,
         card: asJson({ ...card, logoUrl }),
         profile: asJson(profile),
         blocks: asJson(generated.blocks),
@@ -242,7 +243,11 @@ export const createPortfolioService = (
   ): Promise<Portfolio> => {
     const existing = await getOwnedOnlineCard(userId, portfolioId);
     const sourceLinks = normalizeSourceLinks(existing.sourceLinks);
-    const updated = await ai.updateContent({ userId, sourceLinks });
+    const updated = await ai.updateContent({
+      userId,
+      sourceLinks,
+      requirements: existing.requirements ?? "",
+    });
     const normalized = normalizeGeneratedResponse(updated, createId);
     const blocks = mergeRefreshedBlocks(existing.blocks, updated.blocks, createId);
 

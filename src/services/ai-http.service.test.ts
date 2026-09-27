@@ -40,6 +40,7 @@ const validResponse = {
 const updateRequest: UpdateContentRequest = {
   userId: 900000003,
   sourceLinks: ["https://example.com/source"],
+  requirements: "프로젝트 중심",
 };
 
 afterEach(() => {
