@@ -116,10 +116,10 @@ export const createPortfolioService = (
       throw new AppError(404, "사용자를 찾을 수 없습니다.", "NOT_FOUND");
     }
 
-    const userType = mapUserType(user.role);
-    const { card, profile } = buildInitialPortfolioProfile(user);
     const sourceLinks = normalizeSourceLinks(input.externalLinks);
-    // 외부 소스 수집은 AI가 담당하고, 명함 로고는 Backend가 별도로 조회한다.
+    const userType = mapUserType(user.role);
+    const { card, profile } = buildInitialPortfolioProfile(user, sourceLinks);
+
     const generationRequest = toGenerateRequest(user, { ...input, externalLinks: sourceLinks });
     const organizationName = organizationNameOf(user);
     const [aiResult, logoUrl] = await Promise.all([
