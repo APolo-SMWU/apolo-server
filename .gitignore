@@ -2,3 +2,7 @@ node_modules
 dist
 .env
 /src/generated/prisma
+test
+src/test/
+**/*.test.ts
+**/*.spec.ts
