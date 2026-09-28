@@ -84,8 +84,12 @@ const normalizeBlockIds = (
       categories: block.categories.map((category) => ({
         ...category,
         id: replaceIds || !category.id ? createId() : category.id,
+        items: category.items.map((item) => ({
+          ...item,
+          id: replaceIds || !item.id ? createId() : item.id,
+        })),
       })),
-    };
+    } as unknown as ContentBlock;
   }
   return {
     ...block,
@@ -94,9 +98,9 @@ const normalizeBlockIds = (
       ({
         ...item,
         id: replaceIds || !item.id ? createId() : item.id,
-      }) as TimelineItem,
+      }),
     ),
-  };
+  } as unknown as ContentBlock;
 };
 
 export const normalizeBlocks = (
@@ -124,7 +128,7 @@ export const normalizeGeneratedResponse = (
     "INVALID_AI_RESPONSE",
   );
   return {
-    blocks: generated.blocks.map((block) => normalizeBlockIds(block, createId, true)),
+    blocks: normalizeBlocks(generated.blocks, createId, true),
     meta: generated.meta,
     warnings: generated.warnings,
   };
@@ -132,24 +136,28 @@ export const normalizeGeneratedResponse = (
 
 const normalized = (value: string | undefined) => value?.trim().toLowerCase() ?? "";
 
-const timelineItemKey = (blockType: string, item: {
-  startDate: string;
-  endDate?: string;
-  organization: string;
-  role?: string;
-  kind?: string;
-}) =>
-  [
+const itemKey = (blockType: string, item: object) => {
+  const values = item as Record<string, unknown>;
+  if (blockType === "works") {
+    return `${blockType}|${normalized(String(values.kind ?? ""))}|${normalized(String(values.title ?? ""))}`;
+  }
+  if (blockType === "awards" || blockType === "certification") {
+    return [
+      blockType,
+      normalized(String(values.title ?? "")),
+      String(values.date ?? ""),
+      normalized(String(values.issuer ?? "")),
+    ].join("|");
+  }
+  return [
     blockType,
-    item.startDate,
-    item.endDate ?? "",
-    normalized(item.organization),
-    normalized(item.role),
-    item.kind ?? "",
+    String(values.startDate ?? ""),
+    String(values.endDate ?? ""),
+    normalized(String(values.organization ?? "")),
+    normalized(String(values.role ?? "")),
+    normalized(String(values.kind ?? "")),
   ].join("|");
-
-const workItemKey = (item: { kind: string; title: string }) =>
-  `${item.kind}|${normalized(item.title)}`;
+};
 
 const onlyNewItems = <T>(items: T[], known: Set<string>, keyOf: (item: T) => string) =>
   items.filter((item) => {
@@ -180,8 +188,8 @@ export const mergeRefreshedBlocks = (
     }
 
     if (existing.type === "works" && incoming.type === "works") {
-      const known = new Set(existing.items.map(workItemKey));
-      const additions = onlyNewItems(incoming.items, known, workItemKey);
+      const known = new Set(existing.items.map((item) => itemKey("works", item)));
+      const additions = onlyNewItems(incoming.items, known, (item) => itemKey("works", item));
       current[existingIndex] = { ...existing, items: [...existing.items, ...additions] };
       continue;
     }
@@ -196,8 +204,14 @@ export const mergeRefreshedBlocks = (
           categories.push(incomingCategory);
           continue;
         }
-        const knownItems = new Set(category.items.map(normalized));
-        category.items.push(...onlyNewItems(incomingCategory.items, knownItems, normalized));
+        const knownItems = new Set(category.items.map((item) => normalized(item.name)));
+        category.items.push(
+          ...onlyNewItems(
+            incomingCategory.items,
+            knownItems,
+            (item) => normalized(item.name),
+          ),
+        );
       }
       current[existingIndex] = { ...existing, categories };
       continue;
@@ -207,17 +221,17 @@ export const mergeRefreshedBlocks = (
       const existingTimeline = existing as TimelineBlock;
       const incomingTimeline = incoming as TimelineBlock;
       const known = new Set(
-        existingTimeline.items.map((item) => timelineItemKey(existingTimeline.type, item)),
+        existingTimeline.items.map((item) => itemKey(existingTimeline.type, item)),
       );
-      const additions = onlyNewItems(
+      const additions = onlyNewItems<TimelineItem>(
         incomingTimeline.items,
         known,
-        (item) => timelineItemKey(incomingTimeline.type, item),
+        (item) => itemKey(incomingTimeline.type, item),
       );
       current[existingIndex] = {
         ...existingTimeline,
         items: [...existingTimeline.items, ...additions],
-      };
+      } as ContentBlock;
     }
   }
 

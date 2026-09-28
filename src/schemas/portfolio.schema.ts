@@ -42,65 +42,140 @@ export const aboutBlockSchema = z
   .object({
     ...commonBlockFields,
     type: z.literal("about"),
-    body: requiredString("자기소개", 10_000),
+    description: z.string().trim().max(10_000),
   })
   .strict();
 
-// 날짜 미입력은 빈 문자열로 표현하고, 입력된 날짜는 기존 형식을 검증한다.
-const timelineDateSchema = z.union([
-  z.literal(""),
-  z.string().regex(/^\d{4}(?:\.(?:0[1-9]|1[0-2]))?$/, "날짜는 YYYY 또는 YYYY.MM 형식이어야 합니다."),
-]);
+const nullableStartDateSchema = z
+  .string()
+  .regex(/^\d{4}(?:\.(?:0[1-9]|1[0-2]))?$/, "날짜는 YYYY 또는 YYYY.MM 형식이어야 합니다.")
+  .nullable();
 
-export const timelineItemSchema = z
+const nullableEndDateSchema = z
+  .union([
+    z.string().regex(/^\d{4}(?:\.(?:0[1-9]|1[0-2]))?$/, "날짜는 YYYY 또는 YYYY.MM 형식이어야 합니다."),
+    z.literal("Present"),
+  ])
+  .nullable();
+
+const entityIdSchema = requiredString("KG Entity ID", 200);
+const optionalNullableText = (label: string, max: number) =>
+  requiredString(label, max).nullable().optional();
+
+export const educationItemSchema = z
   .object({
     id: generatedIdSchema,
-    entityId: requiredString("KG Entity ID", 200).optional(),
-    startDate: timelineDateSchema,
-    endDate: z.union([timelineDateSchema, z.literal("Present")]).optional(),
-    organization: z.string().trim().max(200),
-    role: requiredString("역할", 200).optional(),
-    description: requiredString("설명", 10_000).optional(),
-    kind: z
-      .enum([
-        "fulltime",
-        "intern",
-        "research",
-        "exchange",
-        "volunteer",
-        "club",
-        "program",
-        "talk",
-      ])
-      .optional(),
+    entityId: entityIdSchema.optional(),
+    startDate: nullableStartDateSchema,
+    endDate: nullableEndDateSchema,
+    organization: requiredString("학교명", 200),
+    role: optionalNullableText("전공·학위", 200),
   })
   .strict();
 
-export const timelineBlockSchema = z
+export const educationBlockSchema = z
   .object({
     ...commonBlockFields,
-    type: z.enum([
-      "education",
-      "experience",
-      "activities",
-      "awards",
-      "certification",
-    ]),
-    items: z.array(timelineItemSchema),
+    type: z.literal("education"),
+    items: z.array(educationItemSchema),
+  })
+  .strict();
+
+const experienceKindSchema = z.enum(["fulltime", "contract", "intern", "research"]);
+
+export const experienceItemSchema = z
+  .object({
+    id: generatedIdSchema,
+    entityId: entityIdSchema.optional(),
+    startDate: nullableStartDateSchema,
+    endDate: nullableEndDateSchema,
+    organization: optionalNullableText("기관명", 200),
+    role: optionalNullableText("직무", 200),
+    description: optionalNullableText("설명", 10_000),
+    kind: experienceKindSchema.nullable().optional(),
+  })
+  .strict();
+
+export const experienceBlockSchema = z
+  .object({
+    ...commonBlockFields,
+    type: z.literal("experience"),
+    items: z.array(experienceItemSchema),
+  })
+  .strict();
+
+const activityKindSchema = z.enum(["club", "volunteer", "program", "talk"]);
+
+export const activitiesItemSchema = z
+  .object({
+    id: generatedIdSchema,
+    entityId: entityIdSchema.optional(),
+    startDate: nullableStartDateSchema,
+    endDate: nullableEndDateSchema,
+    organization: requiredString("활동명·기관명", 200),
+    role: optionalNullableText("역할", 200),
+    description: optionalNullableText("설명", 10_000),
+    kind: activityKindSchema.nullable().optional(),
+  })
+  .strict();
+
+export const activitiesBlockSchema = z
+  .object({
+    ...commonBlockFields,
+    type: z.literal("activities"),
+    items: z.array(activitiesItemSchema),
+  })
+  .strict();
+
+export const awardItemSchema = z
+  .object({
+    id: generatedIdSchema,
+    entityId: entityIdSchema.optional(),
+    title: requiredString("수상명", 200),
+    issuer: optionalNullableText("수여 기관", 200),
+    date: nullableStartDateSchema,
+    description: optionalNullableText("설명", 10_000),
+  })
+  .strict();
+
+export const awardsBlockSchema = z
+  .object({
+    ...commonBlockFields,
+    type: z.literal("awards"),
+    items: z.array(awardItemSchema),
+  })
+  .strict();
+
+export const certificationItemSchema = z
+  .object({
+    id: generatedIdSchema,
+    entityId: entityIdSchema.optional(),
+    title: requiredString("자격증명", 200),
+    grade: optionalNullableText("등급·점수", 200),
+    issuer: optionalNullableText("발급 기관", 200),
+    date: nullableStartDateSchema,
+  })
+  .strict();
+
+export const certificationBlockSchema = z
+  .object({
+    ...commonBlockFields,
+    type: z.literal("certification"),
+    items: z.array(certificationItemSchema),
   })
   .strict();
 
 export const workItemSchema = z
   .object({
     id: generatedIdSchema,
-    entityId: requiredString("KG Entity ID", 200).optional(),
+    entityId: entityIdSchema.optional(),
     kind: z.enum(["project", "publication", "opensource"]),
     title: requiredString("작업 제목", 200),
-    role: requiredString("역할", 200).optional(),
-    skills: z.array(requiredString("기술", 100)).optional(),
-    description: requiredString("작업 설명", 10_000),
+    role: optionalNullableText("역할", 200),
+    skills: z.array(requiredString("기술", 100)).nullable().optional(),
+    description: optionalNullableText("작업 설명", 10_000),
     imageUrl: httpUrlSchema.nullable().optional(),
-    links: z.array(projectLinkSchema),
+    links: z.array(projectLinkSchema).default([]),
   })
   .strict();
 
@@ -116,7 +191,15 @@ export const skillCategorySchema = z
   .object({
     id: generatedIdSchema,
     category: requiredString("기술 카테고리", 100),
-    items: z.array(requiredString("기술", 100)),
+    items: z.array(
+      z
+        .object({
+          id: generatedIdSchema,
+          entityId: entityIdSchema.optional(),
+          name: requiredString("기술", 100),
+        })
+        .strict(),
+    ),
   })
   .strict();
 
@@ -130,7 +213,11 @@ export const skillsBlockSchema = z
 
 export const contentBlockSchema = z.union([
   aboutBlockSchema,
-  timelineBlockSchema,
+  educationBlockSchema,
+  experienceBlockSchema,
+  activitiesBlockSchema,
+  awardsBlockSchema,
+  certificationBlockSchema,
   worksBlockSchema,
   skillsBlockSchema,
 ]);

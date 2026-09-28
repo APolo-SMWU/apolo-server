@@ -49,43 +49,110 @@ export interface AboutBlock {
   id: string;
   type: "about";
   visible: boolean;
-  body: string;
+  description: string;
 }
 
-export type TimelineBlockType =
-  | "education"
-  | "experience"
-  | "activities"
-  | "awards"
-  | "certification";
-
-export type TimelineItemKind =
-  | "fulltime"
-  | "intern"
-  | "research"
-  | "exchange"
-  | "volunteer"
-  | "club"
-  | "program"
-  | "talk";
-
-export interface TimelineItem {
+export interface EducationItem {
   id: string;
   entityId?: string;
-  startDate: string;
-  endDate?: string;
+  startDate: string | null;
+  endDate: string | null | "Present";
   organization: string;
-  role?: string;
-  description?: string;
-  kind?: TimelineItemKind;
+  role?: string | null;
 }
 
-export interface TimelineBlock {
+export interface EducationBlock {
   id: string;
-  type: TimelineBlockType;
+  type: "education";
   visible: boolean;
-  items: TimelineItem[];
+  items: EducationItem[];
 }
+
+export type ExperienceItemKind = "fulltime" | "contract" | "intern" | "research";
+
+export interface ExperienceItem {
+  id: string;
+  entityId?: string;
+  startDate: string | null;
+  endDate: string | null | "Present";
+  organization?: string | null;
+  role?: string | null;
+  description?: string | null;
+  kind?: ExperienceItemKind | null;
+}
+
+export interface ExperienceBlock {
+  id: string;
+  type: "experience";
+  visible: boolean;
+  items: ExperienceItem[];
+}
+
+export type ActivityItemKind = "club" | "volunteer" | "program" | "talk";
+
+export interface ActivityItem {
+  id: string;
+  entityId?: string;
+  startDate: string | null;
+  endDate: string | null | "Present";
+  organization: string;
+  role?: string | null;
+  description?: string | null;
+  kind?: ActivityItemKind | null;
+}
+
+export interface ActivitiesBlock {
+  id: string;
+  type: "activities";
+  visible: boolean;
+  items: ActivityItem[];
+}
+
+export interface AwardItem {
+  id: string;
+  entityId?: string;
+  title: string;
+  issuer?: string | null;
+  date: string | null;
+  description?: string | null;
+}
+
+export interface AwardsBlock {
+  id: string;
+  type: "awards";
+  visible: boolean;
+  items: AwardItem[];
+}
+
+export interface CertificationItem {
+  id: string;
+  entityId?: string;
+  title: string;
+  grade?: string | null;
+  issuer?: string | null;
+  date: string | null;
+}
+
+export interface CertificationBlock {
+  id: string;
+  type: "certification";
+  visible: boolean;
+  items: CertificationItem[];
+}
+
+export type TimelineItem =
+  | EducationItem
+  | ExperienceItem
+  | ActivityItem
+  | AwardItem
+  | CertificationItem;
+
+export type TimelineBlock =
+  | EducationBlock
+  | ExperienceBlock
+  | ActivitiesBlock
+  | AwardsBlock
+  | CertificationBlock;
 
 export type WorkItemKind = "project" | "publication" | "opensource";
 
@@ -94,9 +161,9 @@ export interface WorkItem {
   entityId?: string;
   kind: WorkItemKind;
   title: string;
-  role?: string;
-  skills?: string[];
-  description: string;
+  role?: string | null;
+  skills?: string[] | null;
+  description?: string | null;
   imageUrl?: string | null;
   links: ProjectLink[];
 }
@@ -111,7 +178,13 @@ export interface WorksBlock {
 export interface SkillCategory {
   id: string;
   category: string;
-  items: string[];
+  items: SkillItem[];
+}
+
+export interface SkillItem {
+  id?: string;
+  entityId?: string | undefined;
+  name: string;
 }
 
 export interface SkillsBlock {
@@ -121,7 +194,15 @@ export interface SkillsBlock {
   categories: SkillCategory[];
 }
 
-export type ContentBlock = AboutBlock | TimelineBlock | WorksBlock | SkillsBlock;
+export type ContentBlock =
+  | AboutBlock
+  | EducationBlock
+  | ExperienceBlock
+  | ActivitiesBlock
+  | AwardsBlock
+  | CertificationBlock
+  | WorksBlock
+  | SkillsBlock;
 
 export interface SourceSnapshot {
   url: string;
