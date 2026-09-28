@@ -15,6 +15,8 @@ import type {
 
 export type IdFactory = () => string;
 
+export const PORTFOLIO_SCHEMA_VERSION = 2;
+
 const blocksSchema = contentBlocksSchema;
 
 const invalidData = (message: string, errorCode = "INVALID_PORTFOLIO_DATA") =>

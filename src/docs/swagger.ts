@@ -385,7 +385,7 @@ const swaggerSpec = {
           },
         },
       },
-      Portfolio: { type: "object", properties: { id: { type: "integer" }, title: { type: "string" }, userType: { type: "string" }, card: { $ref: "#/components/schemas/BusinessCard" }, profile: { type: "object" }, blocks: { type: "array", items: contentBlockSchema }, sourceLinks: { type: "array", items: { type: "string" } }, sourceSnapshots: { type: "array", items: { type: "object" } } } },
+      Portfolio: { type: "object", properties: { id: { type: "integer" }, title: { type: "string" }, userType: { type: "string" }, card: { $ref: "#/components/schemas/BusinessCard" }, profile: { type: "object" }, blocks: { type: "array", items: contentBlockSchema }, sourceLinks: { type: "array", items: { type: "string" } }, sourceSnapshots: { type: "array", items: { type: "object" } }, schemaVersion: { type: "integer", minimum: 1, description: "Portfolio/block 계약 버전. KG ontology 버전과 별개이며 현재 v2는 2이다." } } },
     },
   },
 } as const;

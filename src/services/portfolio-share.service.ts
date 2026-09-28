@@ -5,6 +5,7 @@ import { AppError } from "../errors/app-error";
 import prisma from "../lib/prisma";
 import {
   normalizeStoredBlocksWithChange,
+  PORTFOLIO_SCHEMA_VERSION,
   type IdFactory,
 } from "./portfolio-content.service";
 import type { Prisma } from "@prisma/client";
@@ -62,11 +63,18 @@ export const createPortfolioShareService = (
       share.portfolio.blocks,
       createId,
     );
-    if (!changed) return share.portfolio;
+    if (!changed && share.portfolio.schemaVersion === PORTFOLIO_SCHEMA_VERSION) {
+      return share.portfolio;
+    }
+
+    const data: Prisma.PortfolioUpdateInput = {
+      schemaVersion: PORTFOLIO_SCHEMA_VERSION,
+    };
+    if (changed) data.blocks = asJson(blocks);
 
     return db.portfolio.update({
       where: { id: share.portfolio.id },
-      data: { blocks: asJson(blocks) },
+      data,
     });
   };
 
