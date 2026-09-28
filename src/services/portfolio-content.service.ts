@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { AppError } from "../errors/app-error";
 import { contentBlockSchema } from "../schemas/portfolio.schema";
+import { migrateLegacyBlocks } from "./legacy-block-compatibility";
 import type {
   ContentBlock,
   TimelineBlock,
@@ -117,6 +118,11 @@ export const normalizeBlocks = (
   return blocks.map((block) => normalizeBlockIds(block, createId, replaceIds));
 };
 
+export const normalizeStoredBlocks = (
+  value: unknown,
+  createId: IdFactory = randomUUID,
+): ContentBlock[] => normalizeBlocks(migrateLegacyBlocks(value), createId);
+
 export const normalizeGeneratedResponse = (
   value: unknown,
   createId: IdFactory = randomUUID,
@@ -172,7 +178,7 @@ export const mergeRefreshedBlocks = (
   refreshedValue: unknown,
   createId: IdFactory = randomUUID,
 ): ContentBlock[] => {
-  const current = normalizeBlocks(currentValue, createId);
+  const current = normalizeStoredBlocks(currentValue, createId);
   const refreshed = normalizeBlocks(refreshedValue, createId, true);
 
   for (const incoming of refreshed) {
