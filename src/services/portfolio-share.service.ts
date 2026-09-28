@@ -3,7 +3,11 @@ import { randomUUID } from "node:crypto";
 import type { Portfolio } from "@prisma/client";
 import { AppError } from "../errors/app-error";
 import prisma from "../lib/prisma";
-import type { IdFactory } from "./portfolio-content.service";
+import {
+  normalizeStoredBlocksWithChange,
+  type IdFactory,
+} from "./portfolio-content.service";
+import type { Prisma } from "@prisma/client";
 
 interface PortfolioShareServiceDependencies {
   prisma: typeof prisma;
@@ -16,6 +20,9 @@ const missingPortfolio = () =>
 
 const missingShare = () =>
   new AppError(404, "공유 온라인 명함을 찾을 수 없습니다.", "NOT_FOUND");
+
+const asJson = (value: unknown): Prisma.InputJsonValue =>
+  value as Prisma.InputJsonValue;
 
 export const createPortfolioShareService = (
   overrides: Partial<PortfolioShareServiceDependencies> = {},
@@ -50,7 +57,17 @@ export const createPortfolioShareService = (
       include: { portfolio: true },
     });
     if (!share) throw missingShare();
-    return share.portfolio;
+
+    const { blocks, changed } = normalizeStoredBlocksWithChange(
+      share.portfolio.blocks,
+      createId,
+    );
+    if (!changed) return share.portfolio;
+
+    return db.portfolio.update({
+      where: { id: share.portfolio.id },
+      data: { blocks: asJson(blocks) },
+    });
   };
 
   return { createShareLink, getSharedOnlineCard };

@@ -1,5 +1,6 @@
 import { generateResponseSchema, type AiGenerateResponse } from "../schemas/ai-generate.schema";
 import { randomUUID } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 
 import { z } from "zod";
 import { AppError } from "../errors/app-error";
@@ -122,6 +123,17 @@ export const normalizeStoredBlocks = (
   value: unknown,
   createId: IdFactory = randomUUID,
 ): ContentBlock[] => normalizeBlocks(migrateLegacyBlocks(value), createId);
+
+export const normalizeStoredBlocksWithChange = (
+  value: unknown,
+  createId: IdFactory = randomUUID,
+): { blocks: ContentBlock[]; changed: boolean } => {
+  const blocks = normalizeStoredBlocks(value, createId);
+  return {
+    blocks,
+    changed: !isDeepStrictEqual(blocks, value),
+  };
+};
 
 export const normalizeGeneratedResponse = (
   value: unknown,

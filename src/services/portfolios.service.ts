@@ -19,6 +19,7 @@ import {
   normalizeBlocks,
   normalizeGeneratedResponse,
   normalizeSourceLinks,
+  normalizeStoredBlocksWithChange,
   type IdFactory,
 } from "./portfolio-content.service";
 import {
@@ -85,7 +86,14 @@ export const createPortfolioService = (
       where: { id: portfolioId, userId },
     });
     if (!portfolio) throw ownershipError();
-    return portfolio;
+
+    const { blocks, changed } = normalizeStoredBlocksWithChange(portfolio.blocks, createId);
+    if (!changed) return portfolio;
+
+    return db.portfolio.update({
+      where: { id: portfolio.id },
+      data: { blocks: asJson(blocks) },
+    });
   };
 
   const createOnlineCard = async (
