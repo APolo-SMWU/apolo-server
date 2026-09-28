@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 
 import { z } from "zod";
 import { AppError } from "../errors/app-error";
-import { contentBlockSchema } from "../schemas/portfolio.schema";
+import { contentBlockSchema, contentBlocksSchema } from "../schemas/portfolio.schema";
 import { migrateLegacyBlocks } from "./legacy-block-compatibility";
 import type {
   ContentBlock,
@@ -14,7 +14,7 @@ import type {
 
 export type IdFactory = () => string;
 
-const blocksSchema = z.array(contentBlockSchema);
+const blocksSchema = contentBlocksSchema;
 
 const invalidData = (message: string, errorCode = "INVALID_PORTFOLIO_DATA") =>
   new AppError(500, message, errorCode);

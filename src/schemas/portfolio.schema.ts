@@ -222,6 +222,51 @@ export const contentBlockSchema = z.union([
   skillsBlockSchema,
 ]);
 
+type OptionalId = { id?: string | undefined };
+
+const rejectDuplicateIds = (
+  values: OptionalId[],
+  path: (string | number)[],
+  context: z.RefinementCtx,
+) => {
+  const seen = new Map<string, number>();
+  values.forEach((value, index) => {
+    if (!value.id) return;
+    const previousIndex = seen.get(value.id);
+    if (previousIndex !== undefined) {
+      context.addIssue({
+        code: "custom",
+        message: "식별자는 같은 범위에서 중복될 수 없습니다.",
+        path: [...path, index, "id"],
+      });
+      return;
+    }
+    seen.set(value.id, index);
+  });
+};
+
+export const contentBlocksSchema = z
+  .array(contentBlockSchema)
+  .superRefine((blocks, context) => {
+    rejectDuplicateIds(blocks, [], context);
+
+    blocks.forEach((block, blockIndex) => {
+      if (block.type === "about") return;
+      if (block.type === "skills") {
+        rejectDuplicateIds(block.categories, [blockIndex, "categories"], context);
+        block.categories.forEach((category, categoryIndex) => {
+          rejectDuplicateIds(
+            category.items,
+            [blockIndex, "categories", categoryIndex, "items"],
+            context,
+          );
+        });
+        return;
+      }
+      rejectDuplicateIds(block.items, [blockIndex, "items"], context);
+    });
+  });
+
 export const businessCardSchema = z
   .object({
     name: requiredString("이름", 100),
@@ -335,7 +380,7 @@ export const updatePortfolioSchema = z
     title: requiredString("제목", 100).optional(),
     card: businessCardUpdateSchema.optional(),
     profile: profileUpdateSchema.optional(),
-    blocks: z.array(contentBlockSchema).optional(),
+    blocks: contentBlocksSchema.optional(),
     cardDesignId: requiredString("명함 디자인 ID", 100).optional(),
     siteDesignId: requiredString("사이트 디자인 ID", 100).optional(),
   })
