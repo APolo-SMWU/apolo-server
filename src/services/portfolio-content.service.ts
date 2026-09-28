@@ -142,7 +142,7 @@ export const normalizeGeneratedResponse = (
 
 const normalized = (value: string | undefined) => value?.trim().toLowerCase() ?? "";
 
-const itemKey = (blockType: string, item: object) => {
+const itemFallbackKey = (blockType: string, item: object) => {
   const values = item as Record<string, unknown>;
   if (blockType === "works") {
     return `${blockType}|${normalized(String(values.kind ?? ""))}|${normalized(String(values.title ?? ""))}`;
@@ -165,13 +165,22 @@ const itemKey = (blockType: string, item: object) => {
   ].join("|");
 };
 
-const onlyNewItems = <T>(items: T[], known: Set<string>, keyOf: (item: T) => string) =>
-  items.filter((item) => {
-    const key = keyOf(item);
-    if (known.has(key)) return false;
-    known.add(key);
-    return true;
-  });
+const itemsMatch = (blockType: string, current: object, incoming: object) => {
+  const currentEntityId = normalized(String((current as Record<string, unknown>).entityId ?? ""));
+  const incomingEntityId = normalized(String((incoming as Record<string, unknown>).entityId ?? ""));
+  if (currentEntityId && incomingEntityId) return currentEntityId === incomingEntityId;
+  return itemFallbackKey(blockType, current) === itemFallbackKey(blockType, incoming);
+};
+
+const onlyNewItems = <T extends object>(items: T[], known: T[], blockType: string) => {
+  const additions: T[] = [];
+  for (const item of items) {
+    if (known.some((candidate) => itemsMatch(blockType, candidate, item))) continue;
+    known.push(item);
+    additions.push(item);
+  }
+  return additions;
+};
 
 export const mergeRefreshedBlocks = (
   currentValue: unknown,
@@ -194,8 +203,8 @@ export const mergeRefreshedBlocks = (
     }
 
     if (existing.type === "works" && incoming.type === "works") {
-      const known = new Set(existing.items.map((item) => itemKey("works", item)));
-      const additions = onlyNewItems(incoming.items, known, (item) => itemKey("works", item));
+      const known = [...existing.items];
+      const additions = onlyNewItems(incoming.items, known, "works");
       current[existingIndex] = { ...existing, items: [...existing.items, ...additions] };
       continue;
     }
@@ -210,14 +219,20 @@ export const mergeRefreshedBlocks = (
           categories.push(incomingCategory);
           continue;
         }
-        const knownItems = new Set(category.items.map((item) => normalized(item.name)));
-        category.items.push(
-          ...onlyNewItems(
-            incomingCategory.items,
-            knownItems,
-            (item) => normalized(item.name),
-          ),
+        const knownEntityIds = new Set(
+          category.items
+            .map((item) => normalized(item.entityId ?? ""))
+            .filter(Boolean),
         );
+        const knownNames = new Set(category.items.map((item) => normalized(item.name)));
+        for (const item of incomingCategory.items) {
+          const entityId = normalized(item.entityId ?? "");
+          const name = normalized(item.name);
+          if ((entityId && knownEntityIds.has(entityId)) || knownNames.has(name)) continue;
+          category.items.push(item);
+          if (entityId) knownEntityIds.add(entityId);
+          knownNames.add(name);
+        }
       }
       current[existingIndex] = { ...existing, categories };
       continue;
@@ -226,14 +241,8 @@ export const mergeRefreshedBlocks = (
     if ("items" in existing && "items" in incoming) {
       const existingTimeline = existing as TimelineBlock;
       const incomingTimeline = incoming as TimelineBlock;
-      const known = new Set(
-        existingTimeline.items.map((item) => itemKey(existingTimeline.type, item)),
-      );
-      const additions = onlyNewItems<TimelineItem>(
-        incomingTimeline.items,
-        known,
-        (item) => itemKey(incomingTimeline.type, item),
-      );
+      const known = [...existingTimeline.items];
+      const additions = onlyNewItems<TimelineItem>(incomingTimeline.items, known, incomingTimeline.type);
       current[existingIndex] = {
         ...existingTimeline,
         items: [...existingTimeline.items, ...additions],

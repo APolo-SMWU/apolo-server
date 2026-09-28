@@ -249,7 +249,7 @@ export const createPortfolioService = (
       requirements: existing.requirements ?? "",
     });
     const normalized = normalizeGeneratedResponse(updated, createId);
-    const blocks = mergeRefreshedBlocks(existing.blocks, updated.blocks, createId);
+    const blocks = mergeRefreshedBlocks(existing.blocks, normalized.blocks, createId);
 
     return db.portfolio.update({
       where: { id: portfolioId },
