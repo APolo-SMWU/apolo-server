@@ -3,13 +3,20 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const nullableDate = (value: unknown): unknown => (value === "" || value === undefined ? null : value);
 
-const migrateTimelineItem = (value: unknown): unknown => {
+const migrateTimelineItem = (value: unknown, blockType?: string): unknown => {
   if (!isRecord(value)) return value;
 
   const migrated = { ...value };
-  if ("startDate" in migrated) migrated.startDate = nullableDate(migrated.startDate);
-  if ("endDate" in migrated) migrated.endDate = nullableDate(migrated.endDate);
-  if ("date" in migrated) migrated.date = nullableDate(migrated.date);
+  if (blockType === "education" || blockType === "experience" || blockType === "activities") {
+    migrated.startDate = nullableDate(migrated.startDate);
+    migrated.endDate = nullableDate(migrated.endDate);
+  } else if (blockType === "awards" || blockType === "certification") {
+    migrated.date = nullableDate(migrated.date);
+  } else {
+    if ("startDate" in migrated) migrated.startDate = nullableDate(migrated.startDate);
+    if ("endDate" in migrated) migrated.endDate = nullableDate(migrated.endDate);
+    if ("date" in migrated) migrated.date = nullableDate(migrated.date);
+  }
   return migrated;
 };
 
@@ -43,7 +50,9 @@ export const migrateLegacyBlock = (value: unknown): unknown => {
   if (Array.isArray(value.items)) {
     return {
       ...value,
-      items: value.items.map(migrateTimelineItem),
+      items: value.items.map((item) =>
+        migrateTimelineItem(item, typeof value.type === "string" ? value.type : undefined),
+      ),
     };
   }
 
