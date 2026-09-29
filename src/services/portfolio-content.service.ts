@@ -1,9 +1,11 @@
 import { generateResponseSchema, type AiGenerateResponse } from "../schemas/ai-generate.schema";
 import { randomUUID } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 
 import { z } from "zod";
 import { AppError } from "../errors/app-error";
-import { contentBlockSchema } from "../schemas/portfolio.schema";
+import { contentBlockSchema, contentBlocksSchema } from "../schemas/portfolio.schema";
+import { migrateLegacyBlocks } from "./legacy-block-compatibility";
 import type {
   ContentBlock,
   TimelineBlock,
@@ -13,7 +15,9 @@ import type {
 
 export type IdFactory = () => string;
 
-const blocksSchema = z.array(contentBlockSchema);
+export const PORTFOLIO_SCHEMA_VERSION = 2;
+
+const blocksSchema = contentBlocksSchema;
 
 const invalidData = (message: string, errorCode = "INVALID_PORTFOLIO_DATA") =>
   new AppError(500, message, errorCode);
@@ -84,8 +88,12 @@ const normalizeBlockIds = (
       categories: block.categories.map((category) => ({
         ...category,
         id: replaceIds || !category.id ? createId() : category.id,
+        items: category.items.map((item) => ({
+          ...item,
+          id: replaceIds || !item.id ? createId() : item.id,
+        })),
       })),
-    };
+    } as unknown as ContentBlock;
   }
   return {
     ...block,
@@ -94,9 +102,9 @@ const normalizeBlockIds = (
       ({
         ...item,
         id: replaceIds || !item.id ? createId() : item.id,
-      }) as TimelineItem,
+      }),
     ),
-  };
+  } as unknown as ContentBlock;
 };
 
 export const normalizeBlocks = (
@@ -113,6 +121,22 @@ export const normalizeBlocks = (
   return blocks.map((block) => normalizeBlockIds(block, createId, replaceIds));
 };
 
+export const normalizeStoredBlocks = (
+  value: unknown,
+  createId: IdFactory = randomUUID,
+): ContentBlock[] => normalizeBlocks(migrateLegacyBlocks(value), createId);
+
+export const normalizeStoredBlocksWithChange = (
+  value: unknown,
+  createId: IdFactory = randomUUID,
+): { blocks: ContentBlock[]; changed: boolean } => {
+  const blocks = normalizeStoredBlocks(value, createId);
+  return {
+    blocks,
+    changed: !isDeepStrictEqual(blocks, value),
+  };
+};
+
 export const normalizeGeneratedResponse = (
   value: unknown,
   createId: IdFactory = randomUUID,
@@ -124,7 +148,7 @@ export const normalizeGeneratedResponse = (
     "INVALID_AI_RESPONSE",
   );
   return {
-    blocks: generated.blocks.map((block) => normalizeBlockIds(block, createId, true)),
+    blocks: normalizeBlocks(generated.blocks, createId, true),
     meta: generated.meta,
     warnings: generated.warnings,
   };
@@ -132,39 +156,52 @@ export const normalizeGeneratedResponse = (
 
 const normalized = (value: string | undefined) => value?.trim().toLowerCase() ?? "";
 
-const timelineItemKey = (blockType: string, item: {
-  startDate: string;
-  endDate?: string;
-  organization: string;
-  role?: string;
-  kind?: string;
-}) =>
-  [
+const itemFallbackKey = (blockType: string, item: object) => {
+  const values = item as Record<string, unknown>;
+  if (blockType === "works") {
+    return `${blockType}|${normalized(String(values.kind ?? ""))}|${normalized(String(values.title ?? ""))}`;
+  }
+  if (blockType === "awards" || blockType === "certification") {
+    return [
+      blockType,
+      normalized(String(values.title ?? "")),
+      String(values.date ?? ""),
+      normalized(String(values.issuer ?? "")),
+    ].join("|");
+  }
+  return [
     blockType,
-    item.startDate,
-    item.endDate ?? "",
-    normalized(item.organization),
-    normalized(item.role),
-    item.kind ?? "",
+    String(values.startDate ?? ""),
+    String(values.endDate ?? ""),
+    normalized(String(values.organization ?? "")),
+    normalized(String(values.role ?? "")),
+    normalized(String(values.kind ?? "")),
   ].join("|");
+};
 
-const workItemKey = (item: { kind: string; title: string }) =>
-  `${item.kind}|${normalized(item.title)}`;
+const itemsMatch = (blockType: string, current: object, incoming: object) => {
+  const currentEntityId = normalized(String((current as Record<string, unknown>).entityId ?? ""));
+  const incomingEntityId = normalized(String((incoming as Record<string, unknown>).entityId ?? ""));
+  if (currentEntityId && incomingEntityId) return currentEntityId === incomingEntityId;
+  return itemFallbackKey(blockType, current) === itemFallbackKey(blockType, incoming);
+};
 
-const onlyNewItems = <T>(items: T[], known: Set<string>, keyOf: (item: T) => string) =>
-  items.filter((item) => {
-    const key = keyOf(item);
-    if (known.has(key)) return false;
-    known.add(key);
-    return true;
-  });
+const onlyNewItems = <T extends object>(items: T[], known: T[], blockType: string) => {
+  const additions: T[] = [];
+  for (const item of items) {
+    if (known.some((candidate) => itemsMatch(blockType, candidate, item))) continue;
+    known.push(item);
+    additions.push(item);
+  }
+  return additions;
+};
 
 export const mergeRefreshedBlocks = (
   currentValue: unknown,
   refreshedValue: unknown,
   createId: IdFactory = randomUUID,
 ): ContentBlock[] => {
-  const current = normalizeBlocks(currentValue, createId);
+  const current = normalizeStoredBlocks(currentValue, createId);
   const refreshed = normalizeBlocks(refreshedValue, createId, true);
 
   for (const incoming of refreshed) {
@@ -180,8 +217,8 @@ export const mergeRefreshedBlocks = (
     }
 
     if (existing.type === "works" && incoming.type === "works") {
-      const known = new Set(existing.items.map(workItemKey));
-      const additions = onlyNewItems(incoming.items, known, workItemKey);
+      const known = [...existing.items];
+      const additions = onlyNewItems(incoming.items, known, "works");
       current[existingIndex] = { ...existing, items: [...existing.items, ...additions] };
       continue;
     }
@@ -196,8 +233,20 @@ export const mergeRefreshedBlocks = (
           categories.push(incomingCategory);
           continue;
         }
-        const knownItems = new Set(category.items.map(normalized));
-        category.items.push(...onlyNewItems(incomingCategory.items, knownItems, normalized));
+        const knownEntityIds = new Set(
+          category.items
+            .map((item) => normalized(item.entityId ?? ""))
+            .filter(Boolean),
+        );
+        const knownNames = new Set(category.items.map((item) => normalized(item.name)));
+        for (const item of incomingCategory.items) {
+          const entityId = normalized(item.entityId ?? "");
+          const name = normalized(item.name);
+          if ((entityId && knownEntityIds.has(entityId)) || knownNames.has(name)) continue;
+          category.items.push(item);
+          if (entityId) knownEntityIds.add(entityId);
+          knownNames.add(name);
+        }
       }
       current[existingIndex] = { ...existing, categories };
       continue;
@@ -206,18 +255,12 @@ export const mergeRefreshedBlocks = (
     if ("items" in existing && "items" in incoming) {
       const existingTimeline = existing as TimelineBlock;
       const incomingTimeline = incoming as TimelineBlock;
-      const known = new Set(
-        existingTimeline.items.map((item) => timelineItemKey(existingTimeline.type, item)),
-      );
-      const additions = onlyNewItems(
-        incomingTimeline.items,
-        known,
-        (item) => timelineItemKey(incomingTimeline.type, item),
-      );
+      const known = [...existingTimeline.items];
+      const additions = onlyNewItems<TimelineItem>(incomingTimeline.items, known, incomingTimeline.type);
       current[existingIndex] = {
         ...existingTimeline,
         items: [...existingTimeline.items, ...additions],
-      };
+      } as ContentBlock;
     }
   }
 

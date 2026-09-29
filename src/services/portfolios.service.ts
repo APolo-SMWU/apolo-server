@@ -19,6 +19,8 @@ import {
   normalizeBlocks,
   normalizeGeneratedResponse,
   normalizeSourceLinks,
+  normalizeStoredBlocksWithChange,
+  PORTFOLIO_SCHEMA_VERSION,
   type IdFactory,
 } from "./portfolio-content.service";
 import {
@@ -77,15 +79,31 @@ export const createPortfolioService = (
   const createId = overrides.createId ?? randomUUID;
   const logoLookup = overrides.logoLookup ?? lookupOrganizationLogo;
 
+  type OwnedOnlineCardOptions = { backfill?: boolean };
+
   const getOwnedOnlineCard = async (
     userId: number,
     portfolioId: number,
+    options: OwnedOnlineCardOptions = {},
   ): Promise<Portfolio> => {
     const portfolio = await db.portfolio.findFirst({
       where: { id: portfolioId, userId },
     });
     if (!portfolio) throw ownershipError();
-    return portfolio;
+    if (options.backfill === false) return portfolio;
+
+    const { blocks, changed } = normalizeStoredBlocksWithChange(portfolio.blocks, createId);
+    if (!changed && portfolio.schemaVersion === PORTFOLIO_SCHEMA_VERSION) return portfolio;
+
+    const data: Prisma.PortfolioUpdateInput = {
+      schemaVersion: PORTFOLIO_SCHEMA_VERSION,
+    };
+    if (changed) data.blocks = asJson(blocks);
+
+    return db.portfolio.update({
+      where: { id: portfolio.id },
+      data,
+    });
   };
 
   const createOnlineCard = async (
@@ -143,7 +161,7 @@ export const createPortfolioService = (
         aiWarnings: asJson(generated.warnings),
         sourceLinks: asJson(sourceLinks),
         sourceSnapshots: asJson([]),
-        schemaVersion: 1,
+        schemaVersion: PORTFOLIO_SCHEMA_VERSION,
         status: "draft",
       },
     });
@@ -196,8 +214,10 @@ export const createPortfolioService = (
     portfolioId: number,
     input: UpdatePortfolioInput,
   ): Promise<Portfolio> => {
-    const existing = await getOwnedOnlineCard(userId, portfolioId);
-    const data: Prisma.PortfolioUpdateInput = {};
+    const existing = await getOwnedOnlineCard(userId, portfolioId, { backfill: false });
+    const data: Prisma.PortfolioUpdateInput = {
+      schemaVersion: PORTFOLIO_SCHEMA_VERSION,
+    };
 
     if (input.title !== undefined) data.title = input.title;
     if (input.cardDesignId !== undefined) data.cardDesignId = input.cardDesignId;
@@ -224,6 +244,9 @@ export const createPortfolioService = (
     }
     if (input.blocks !== undefined) {
       data.blocks = asJson(normalizeBlocks(input.blocks, createId));
+    } else {
+      const { blocks, changed } = normalizeStoredBlocksWithChange(existing.blocks, createId);
+      if (changed) data.blocks = asJson(blocks);
     }
 
     return db.portfolio.update({ where: { id: portfolioId }, data });
@@ -233,7 +256,7 @@ export const createPortfolioService = (
     userId: number,
     portfolioId: number,
   ): Promise<void> => {
-    await getOwnedOnlineCard(userId, portfolioId);
+    await getOwnedOnlineCard(userId, portfolioId, { backfill: false });
     await db.portfolio.delete({ where: { id: portfolioId } });
   };
 
@@ -241,7 +264,7 @@ export const createPortfolioService = (
     userId: number,
     portfolioId: number,
   ): Promise<Portfolio> => {
-    const existing = await getOwnedOnlineCard(userId, portfolioId);
+    const existing = await getOwnedOnlineCard(userId, portfolioId, { backfill: false });
     const sourceLinks = normalizeSourceLinks(existing.sourceLinks);
     const updated = await ai.updateContent({
       userId,
@@ -249,7 +272,7 @@ export const createPortfolioService = (
       requirements: existing.requirements ?? "",
     });
     const normalized = normalizeGeneratedResponse(updated, createId);
-    const blocks = mergeRefreshedBlocks(existing.blocks, updated.blocks, createId);
+    const blocks = mergeRefreshedBlocks(existing.blocks, normalized.blocks, createId);
 
     return db.portfolio.update({
       where: { id: portfolioId },
@@ -257,6 +280,7 @@ export const createPortfolioService = (
         blocks: asJson(blocks),
         aiMeta: asJson(normalized.meta),
         aiWarnings: asJson(normalized.warnings),
+        schemaVersion: PORTFOLIO_SCHEMA_VERSION,
       },
     });
   };
