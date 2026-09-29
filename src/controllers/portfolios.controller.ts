@@ -3,12 +3,13 @@ import type { Request, Response } from "express";
 import type { AuthRequest } from "../middlewares/auth.middleware";
 import { AppError } from "../errors/app-error";
 import { validateRequest } from "../utils/validate-request";
-import { portfolioIdParamSchema, shareIdParamSchema } from "../schemas/common.schema";
+import { portfolioIdParamSchema, portfolioWorkImageParamSchema, shareIdParamSchema } from "../schemas/common.schema";
 import { updateContentSchema, updatePortfolioSchema } from "../schemas/portfolio.schema";
 import { createOnlineCard, getMyOnlineCards, getOwnedOnlineCard, updateOnlineCard, deleteOnlineCard, refreshOnlineCardContent, type PortfolioGenerationAttachment } from "../services/portfolios.service";
 import { parsePortfolioGenerationInput } from "../services/portfolio-generation-input";
 import { createShareLink, getSharedOnlineCard } from "../services/portfolio-share.service";
 import { getPortfolioAvatarUrl, uploadPortfolioAvatar, withSignedAvatarUrl } from "../services/portfolio-avatar.service";
+import { uploadWorkImage } from "../services/portfolio-work-image.service";
 
 const requireUser = (req: AuthRequest) => {
   if (!req.user?.userId) throw new Error("UNAUTHORIZED");
@@ -77,6 +78,21 @@ export const uploadPortfolioAvatarController = async (req: AuthRequest, res: Res
 export const getPortfolioAvatarController = async (req: AuthRequest, res: Response) => {
   const { portfolioId } = validateRequest(portfolioIdParamSchema, req.params);
   return res.redirect(302, await getPortfolioAvatarUrl(requireUser(req), portfolioId));
+};
+export const uploadPortfolioWorkImageController = async (req: AuthRequest, res: Response) => {
+  const { portfolioId, itemId } = validateRequest(portfolioWorkImageParamSchema, req.params);
+  if (!req.file) {
+    throw new AppError(400, "file 필드에 프로젝트 이미지를 첨부해주세요.", "WORK_IMAGE_REQUIRED");
+  }
+  const portfolio = await uploadWorkImage(requireUser(req), portfolioId, itemId, {
+    buffer: req.file.buffer,
+    mimetype: req.file.mimetype,
+    size: req.file.size,
+  });
+  return res.status(200).json({
+    message: "프로젝트 이미지 업로드 성공",
+    portfolio: await toPortfolioResponse(await withSignedAvatarUrl(portfolio)),
+  });
 };
 export const getSharedController = async (req: Request, res: Response) => {
   const { shareId } = validateRequest(shareIdParamSchema, req.params);

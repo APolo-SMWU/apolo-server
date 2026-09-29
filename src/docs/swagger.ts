@@ -294,6 +294,9 @@ const swaggerSpec = {
       post: { tags: ["Online Card"], security: [{ bearerAuth: [] }], parameters: [{ $ref: "#/components/parameters/portfolioId" }], requestBody: { required: true, content: { "multipart/form-data": { schema: { type: "object", required: ["file"], properties: { file: { type: "string", format: "binary" } } } } } }, responses: { 200: { description: "프로필 사진 업로드 성공" }, 400: { description: "파일 누락" }, 422: { description: "지원하지 않는 형식 또는 용량 초과" } } },
       get: { tags: ["Online Card"], security: [{ bearerAuth: [] }], parameters: [{ $ref: "#/components/parameters/portfolioId" }], responses: { 302: { description: "S3 서명 URL로 이동" }, 404: { description: "프로필 사진 없음" } } },
     },
+    "/portfolios/{portfolioId}/works/{itemId}/image": {
+      post: { tags: ["Online Card"], security: [{ bearerAuth: [] }], parameters: [{ $ref: "#/components/parameters/portfolioId" }, { name: "itemId", in: "path", required: true, schema: { type: "string", format: "uuid" } }], requestBody: { required: true, content: { "multipart/form-data": { schema: { type: "object", required: ["file"], properties: { file: { type: "string", format: "binary" } } } } } }, responses: { 200: { description: "프로젝트 이미지 업로드 성공" }, 400: { description: "파일 누락 또는 잘못된 경로" }, 404: { description: "Portfolio 또는 프로젝트 없음" }, 422: { description: "지원하지 않는 형식 또는 용량 초과" } } },
+    },
     "/users/me": {
       get: { tags: ["User"], security: [{ bearerAuth: [] }], responses: { 200: { description: "내 정보 조회", content: { "application/json": { schema: { type: "object", properties: { message: { type: "string" }, user: { $ref: "#/components/schemas/User" } } } } } }, 401: { description: "인증 필요" } } },
     },
