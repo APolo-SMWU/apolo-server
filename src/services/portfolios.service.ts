@@ -1,6 +1,7 @@
 import { toGenerateRequest } from "./ai-generate.mapper";
 import { buildInitialPortfolioProfile } from "./portfolio-profile.service";
 import { randomUUID } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 
 import type { Prisma, Portfolio } from "@prisma/client";
 import { mapUserType } from "./ai-profile.mapper";
@@ -19,6 +20,7 @@ import {
   normalizeBlocks,
   normalizeGeneratedResponse,
   normalizeSourceLinks,
+  normalizeStoredBlocks,
   normalizeStoredBlocksWithChange,
   PORTFOLIO_SCHEMA_VERSION,
   type IdFactory,
@@ -35,6 +37,10 @@ import {
   validatePortfolioAttachment,
 } from "./portfolio-attachment";
 import { deletePrivateObject, putPrivateObject } from "./s3.service";
+import {
+  materializeWorkImages,
+  preserveStoredWorkImageKeys,
+} from "./portfolio-work-image";
 
 export type PortfolioGenerationAttachment = {
   buffer: Buffer;
@@ -92,18 +98,25 @@ export const createPortfolioService = (
     if (!portfolio) throw ownershipError();
     if (options.backfill === false) return portfolio;
 
-    const { blocks, changed } = normalizeStoredBlocksWithChange(portfolio.blocks, createId);
+    const normalized = normalizeStoredBlocksWithChange(portfolio.blocks, createId);
+    const materialized = await materializeWorkImages(normalized.blocks, portfolio.id, { createId });
+    const changed = normalized.changed || !isDeepStrictEqual(materialized.blocks, normalized.blocks);
     if (!changed && portfolio.schemaVersion === PORTFOLIO_SCHEMA_VERSION) return portfolio;
 
     const data: Prisma.PortfolioUpdateInput = {
       schemaVersion: PORTFOLIO_SCHEMA_VERSION,
     };
-    if (changed) data.blocks = asJson(blocks);
+    if (changed) data.blocks = asJson(materialized.blocks);
 
-    return db.portfolio.update({
-      where: { id: portfolio.id },
-      data,
-    });
+    try {
+      return await db.portfolio.update({
+        where: { id: portfolio.id },
+        data,
+      });
+    } catch (error) {
+      await Promise.all(materialized.uploadedKeys.map((key) => deletePrivateObject(key).catch(() => undefined)));
+      throw error;
+    }
   };
 
   const createOnlineCard = async (
@@ -168,6 +181,13 @@ export const createPortfolioService = (
 
     const uploadedKeys: string[] = [];
     try {
+      const materialized = await materializeWorkImages(generated.blocks, portfolio.id, { createId });
+      uploadedKeys.push(...materialized.uploadedKeys);
+      await db.portfolio.update({
+        where: { id: portfolio.id },
+        data: { blocks: asJson(materialized.blocks) },
+      });
+
       const attachmentData = [];
       for (const file of attachments) {
         const key = createPortfolioAttachmentKey(portfolio.id, file.mimetype);
@@ -243,7 +263,20 @@ export const createPortfolioService = (
       data.profile = asJson(result.data);
     }
     if (input.blocks !== undefined) {
-      data.blocks = asJson(normalizeBlocks(input.blocks, createId));
+      const currentBlocks = normalizeStoredBlocks(existing.blocks, createId);
+      const incomingBlocks = preserveStoredWorkImageKeys(
+        currentBlocks,
+        normalizeBlocks(input.blocks, createId),
+      );
+      const materialized = await materializeWorkImages(incomingBlocks, portfolioId, { createId });
+      data.blocks = asJson(materialized.blocks);
+      try {
+        const updated = await db.portfolio.update({ where: { id: portfolioId }, data });
+        return updated;
+      } catch (error) {
+        await Promise.all(materialized.uploadedKeys.map((key) => deletePrivateObject(key).catch(() => undefined)));
+        throw error;
+      }
     } else {
       const { blocks, changed } = normalizeStoredBlocksWithChange(existing.blocks, createId);
       if (changed) data.blocks = asJson(blocks);
@@ -273,16 +306,22 @@ export const createPortfolioService = (
     });
     const normalized = normalizeGeneratedResponse(updated, createId);
     const blocks = mergeRefreshedBlocks(existing.blocks, normalized.blocks, createId);
+    const materialized = await materializeWorkImages(blocks, portfolioId, { createId });
 
-    return db.portfolio.update({
-      where: { id: portfolioId },
-      data: {
-        blocks: asJson(blocks),
-        aiMeta: asJson(normalized.meta),
-        aiWarnings: asJson(normalized.warnings),
-        schemaVersion: PORTFOLIO_SCHEMA_VERSION,
-      },
-    });
+    try {
+      return await db.portfolio.update({
+        where: { id: portfolioId },
+        data: {
+          blocks: asJson(materialized.blocks),
+          aiMeta: asJson(normalized.meta),
+          aiWarnings: asJson(normalized.warnings),
+          schemaVersion: PORTFOLIO_SCHEMA_VERSION,
+        },
+      });
+    } catch (error) {
+      await Promise.all(materialized.uploadedKeys.map((key) => deletePrivateObject(key).catch(() => undefined)));
+      throw error;
+    }
   };
 
   return {

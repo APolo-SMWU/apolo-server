@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 
 import type { Portfolio } from "@prisma/client";
 import { AppError } from "../errors/app-error";
@@ -8,6 +9,8 @@ import {
   PORTFOLIO_SCHEMA_VERSION,
   type IdFactory,
 } from "./portfolio-content.service";
+import { materializeWorkImages } from "./portfolio-work-image";
+import { deletePrivateObject } from "./s3.service";
 import type { Prisma } from "@prisma/client";
 
 interface PortfolioShareServiceDependencies {
@@ -59,10 +62,12 @@ export const createPortfolioShareService = (
     });
     if (!share) throw missingShare();
 
-    const { blocks, changed } = normalizeStoredBlocksWithChange(
+    const normalized = normalizeStoredBlocksWithChange(
       share.portfolio.blocks,
       createId,
     );
+    const materialized = await materializeWorkImages(normalized.blocks, share.portfolio.id, { createId });
+    const changed = normalized.changed || !isDeepStrictEqual(materialized.blocks, normalized.blocks);
     if (!changed && share.portfolio.schemaVersion === PORTFOLIO_SCHEMA_VERSION) {
       return share.portfolio;
     }
@@ -70,12 +75,17 @@ export const createPortfolioShareService = (
     const data: Prisma.PortfolioUpdateInput = {
       schemaVersion: PORTFOLIO_SCHEMA_VERSION,
     };
-    if (changed) data.blocks = asJson(blocks);
+    if (changed) data.blocks = asJson(materialized.blocks);
 
-    return db.portfolio.update({
-      where: { id: share.portfolio.id },
-      data,
-    });
+    try {
+      return await db.portfolio.update({
+        where: { id: share.portfolio.id },
+        data,
+      });
+    } catch (error) {
+      await Promise.all(materialized.uploadedKeys.map((key) => deletePrivateObject(key).catch(() => undefined)));
+      throw error;
+    }
   };
 
   return { createShareLink, getSharedOnlineCard };
