@@ -4,6 +4,10 @@ export const portfolioIdParamSchema = z.object({
   portfolioId: z.coerce.number().int().positive("portfolioId는 양수여야 합니다."),
 });
 
+export const portfolioWorkImageParamSchema = portfolioIdParamSchema.extend({
+  itemId: z.string().uuid("itemId는 UUID여야 합니다."),
+});
+
 export const shareIdParamSchema = z.object({
   shareId: z.string().uuid(),
 });
