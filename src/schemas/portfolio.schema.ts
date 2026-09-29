@@ -222,6 +222,25 @@ export const contentBlockSchema = z.union([
   skillsBlockSchema,
 ]);
 
+const storedWorkItemSchema = workItemSchema.extend({
+  imageKey: z.string().regex(/^portfolios\/\d+\/works\/[0-9a-f-]+\.(?:gif|jpg|png|webp)$/).optional(),
+});
+
+const storedWorksBlockSchema = worksBlockSchema.extend({
+  items: z.array(storedWorkItemSchema),
+});
+
+const storedContentBlockSchema = z.union([
+  aboutBlockSchema,
+  educationBlockSchema,
+  experienceBlockSchema,
+  activitiesBlockSchema,
+  awardsBlockSchema,
+  certificationBlockSchema,
+  storedWorksBlockSchema,
+  skillsBlockSchema,
+]);
+
 type OptionalId = { id?: string | undefined };
 
 const rejectDuplicateIds = (
@@ -245,16 +264,20 @@ const rejectDuplicateIds = (
   });
 };
 
-export const contentBlocksSchema = z
-  .array(contentBlockSchema)
-  .superRefine((blocks, context) => {
+const validateDuplicateBlockIds = (values: unknown[], context: z.RefinementCtx) => {
+    const blocks = values as Array<{
+      id?: string;
+      type: string;
+      categories?: Array<{ id?: string; items: Array<{ id?: string }> }>;
+      items?: Array<{ id?: string }>;
+    }>;
     rejectDuplicateIds(blocks, [], context);
 
     blocks.forEach((block, blockIndex) => {
       if (block.type === "about") return;
       if (block.type === "skills") {
-        rejectDuplicateIds(block.categories, [blockIndex, "categories"], context);
-        block.categories.forEach((category, categoryIndex) => {
+        rejectDuplicateIds(block.categories!, [blockIndex, "categories"], context);
+        block.categories!.forEach((category, categoryIndex) => {
           rejectDuplicateIds(
             category.items,
             [blockIndex, "categories", categoryIndex, "items"],
@@ -263,9 +286,17 @@ export const contentBlocksSchema = z
         });
         return;
       }
-      rejectDuplicateIds(block.items, [blockIndex, "items"], context);
+      rejectDuplicateIds(block.items!, [blockIndex, "items"], context);
     });
-  });
+};
+
+export const contentBlocksSchema = z
+  .array(contentBlockSchema)
+  .superRefine(validateDuplicateBlockIds);
+
+export const storedContentBlocksSchema = z
+  .array(storedContentBlockSchema)
+  .superRefine(validateDuplicateBlockIds);
 
 export const businessCardSchema = z
   .object({

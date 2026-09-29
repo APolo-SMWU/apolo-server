@@ -4,7 +4,11 @@ import { isDeepStrictEqual } from "node:util";
 
 import { z } from "zod";
 import { AppError } from "../errors/app-error";
-import { contentBlockSchema, contentBlocksSchema } from "../schemas/portfolio.schema";
+import {
+  contentBlockSchema,
+  contentBlocksSchema,
+  storedContentBlocksSchema,
+} from "../schemas/portfolio.schema";
 import { migrateLegacyBlocks } from "./legacy-block-compatibility";
 import type {
   ContentBlock,
@@ -124,7 +128,15 @@ export const normalizeBlocks = (
 export const normalizeStoredBlocks = (
   value: unknown,
   createId: IdFactory = randomUUID,
-): ContentBlock[] => normalizeBlocks(migrateLegacyBlocks(value), createId);
+): ContentBlock[] => {
+  const blocks = parseWithAppError(
+    storedContentBlocksSchema,
+    migrateLegacyBlocks(value),
+    "저장된 콘텐츠 블록 형식이 올바르지 않습니다.",
+    "INVALID_PORTFOLIO_DATA",
+  );
+  return blocks.map((block) => normalizeBlockIds(block, createId, false));
+};
 
 export const normalizeStoredBlocksWithChange = (
   value: unknown,

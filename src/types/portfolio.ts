@@ -165,6 +165,8 @@ export interface WorkItem {
   skills?: string[] | null;
   description?: string | null;
   imageUrl?: string | null;
+  /** Internal S3 object key; removed from API responses. */
+  imageKey?: string;
   links: ProjectLink[];
 }
 
