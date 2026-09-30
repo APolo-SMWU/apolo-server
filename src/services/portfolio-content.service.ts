@@ -89,14 +89,39 @@ const normalizeBlockIds = (
     return {
       ...block,
       id,
-      categories: block.categories.map((category) => ({
-        ...category,
-        id: replaceIds || !category.id ? createId() : category.id,
-        items: category.items.map((item) => ({
-          ...item,
-          id: replaceIds || !item.id ? createId() : item.id,
-        })),
-      })),
+      categories: block.categories.map((category) => {
+        const itemsByName = new Map<string, (typeof category.items)[number]>();
+
+        for (const item of category.items) {
+          const key = normalized(item.name);
+          const entityIds = skillEntityIds(item);
+          const existing = itemsByName.get(key);
+
+          if (!existing) {
+            const { entityId: _legacyEntityId, entityIds: _entityIds, ...itemFields } = item;
+            itemsByName.set(key, {
+              ...itemFields,
+              id: replaceIds || !item.id ? createId() : item.id,
+              ...(entityIds.length > 0 ? { entityIds } : {}),
+            });
+            continue;
+          }
+
+          const mergedEntityIds = skillEntityIds({
+            entityIds: [...(existing.entityIds ?? []), ...entityIds],
+          });
+          itemsByName.set(key, {
+            ...existing,
+            ...(mergedEntityIds.length > 0 ? { entityIds: mergedEntityIds } : {}),
+          });
+        }
+
+        return {
+          ...category,
+          id: replaceIds || !category.id ? createId() : category.id,
+          items: [...itemsByName.values()],
+        };
+      }),
     } as unknown as ContentBlock;
   }
   return {
