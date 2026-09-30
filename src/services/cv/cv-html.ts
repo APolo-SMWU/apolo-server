@@ -40,7 +40,7 @@ const section = ({ title, layout, entries }: CvSection) =>
 const STYLE = `
 @page { size: A4; margin: 14mm 16mm; }
 * { box-sizing: border-box; }
-body { margin: 0; color: #111; font-family: "Noto Serif KR", "Noto Serif CJK KR", "Nanum Myeongjo", "AppleMyungjo", serif; font-size: 10pt; line-height: 1.45; }
+body { margin: 0; color: #111; font-family: "Noto Serif KR", "Noto Serif CJK KR", "Nanum Myeongjo", "AppleMyungjo", serif; font-size: 10pt; line-height: 1.45; word-break: keep-all; }
 header { display: flex; justify-content: space-between; align-items: flex-start; }
 h1 { margin: 0; font-size: 26pt; line-height: 1.1; }
 .links { margin-top: 2px; }
@@ -59,10 +59,10 @@ li { margin: 1px 0; }
 section > ul { margin-left: 14px; }
 `;
 
-export const renderCvHtml = ({ header, sections }: CvData) =>
+export const renderCvHtml = ({ header, sections }: CvData, fontCss = "") =>
   `<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>${escapeHtml(
     header.name,
-  )} CV</title><style>${STYLE}</style></head><body><header><div><h1>${escapeHtml(
+  )} CV</title><style>${fontCss}${STYLE}</style></head><body><header><div><h1>${escapeHtml(
     header.name,
   )}</h1><div class="links">${header.links.map(link).join("")}</div></div><div class="contacts">${header.contacts
     .map((contact) => `<div>${escapeHtml(contact.label)}: ${escapeHtml(contact.value)}</div>`)
