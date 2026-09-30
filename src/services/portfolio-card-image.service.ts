@@ -15,9 +15,15 @@ const escapeXml = (value: string) =>
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&apos;");
 
-const text = (value: string | null | undefined, x: number, y: number, className: string) =>
+const text = (
+  value: string | null | undefined,
+  x: number,
+  y: number,
+  className: string,
+  attributes = "",
+) =>
   value?.trim()
-    ? `<text x="${x}" y="${y}" class="${className}">${escapeXml(value.trim())}</text>`
+    ? `<text x="${x}" y="${y}" class="${className}" ${attributes}>${escapeXml(value.trim())}</text>`
     : "";
 
 const toLogoUrl = async (logoUrl: string) => {
@@ -44,39 +50,65 @@ const fetchLogoDataUri = async (logoUrl: string | null | undefined): Promise<str
   }
 };
 
-const renderSvg = (card: BusinessCardData, bold: boolean, logoDataUri: string | null) => {
-  const colors = bold
-    ? { ink: "#111111", muted: "#555555", accent: "#111111" }
-    : { ink: "#202124", muted: "#5f6368", accent: "#3157d5" };
+export const buildPortfolioFrontSvg = async (portfolio: Portfolio): Promise<string> => {
+  const card = portfolio.card as unknown as BusinessCardData;
+  const bold = portfolio.cardDesignId === "bold";
+  const logoDataUri = await fetchLogoDataUri(card.logoUrl);
+  const fontFamily = "'Noto Sans CJK KR', 'Noto Sans KR', Arial, sans-serif";
   const logo = logoDataUri
-    ? `<image href="${logoDataUri}" x="1500" y="115" width="170" height="170" preserveAspectRatio="xMidYMid meet"/>`
+    ? bold
+      ? `<image href="${logoDataUri}" x="320" y="162" width="50" height="50" preserveAspectRatio="xMidYMid meet"/>`
+      : `<image href="${logoDataUri}" x="20" y="20" width="70" height="70" preserveAspectRatio="xMidYMid meet"/>`
     : "";
-  const divider = bold ? "<rect x=\"140\" y=\"500\" width=\"1520\" height=\"12\" fill=\"#111111\"/>" : "<rect x=\"140\" y=\"500\" width=\"1520\" height=\"4\" fill=\"#3157d5\"/>";
+  const arrow = `<path d="M360 31h10v10M370 31l-12 12" fill="none" stroke="#202124" stroke-width="1.2"/>`;
+  const border = `<rect x="0.75" y="0.75" width="388.5" height="215.5" rx="12" fill="#ffffff" stroke="#202124" stroke-width="1.5"/>`;
+  const divider = `<line x1="20" y1="100" x2="370" y2="100" stroke="#202124" stroke-width="0.75"/>`;
+  const label = (value: string, x: number, y: number) => text(value, x, y, "label");
+  const value = (content: string | null | undefined, x: number, y: number) => text(content, x, y, "value");
+  const professional = portfolio.userType !== "student";
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">
-  <rect width="${WIDTH}" height="${HEIGHT}" fill="#ffffff"/>
+  const defaultHeader = `<g>
+    ${text(card.headline, 365, 48, "job", `text-anchor="end"`)}
+    ${text(card.name, 365, 78, "name default-name", `text-anchor="end"`)}
+  </g>`;
+  const boldHeader = `<g>
+    ${text(card.headline, 20, 39, "job")}
+    ${text(card.name, 20, 84, "name bold-name")}
+  </g>`;
+  const defaultBody = `<g>
+    ${professional ? `${label("Tel.", 20, 119)}${value(card.tel, 84, 119)}` : ""}
+    ${label("Mobile.", 20, professional ? 139 : 119)}${value(card.phone, 84, professional ? 139 : 119)}
+    ${label("E-mail.", 20, professional ? 159 : 139)}${value(card.email, 84, professional ? 159 : 139)}
+    ${value(card.organizationAddress, 20, professional ? 181 : 161)}
+  </g>`;
+  const boldBody = `<g>
+    ${professional ? `${label("Tel.", 20, 121)}${value(card.tel, 20, 135)}` : ""}
+    ${label("E-mail.", 140, 121)}${value(card.email, 140, 135)}
+    ${label("Mobile.", 20, professional ? 157 : 121)}${value(card.phone, 20, professional ? 171 : 135)}
+    ${label("ADDRESS", 140, professional ? 157 : 157)}${value(card.organizationAddress, 140, professional ? 171 : 171)}
+  </g>`;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 390 217">
+  ${border}
   <style>
-    .name { font: ${bold ? "700" : "600"} 88px Arial, sans-serif; fill: ${colors.ink}; }
-    .headline { font: 400 38px Arial, sans-serif; fill: ${colors.accent}; }
-    .label { font: 700 25px Arial, sans-serif; fill: ${colors.muted}; }
-    .value { font: 400 30px Arial, sans-serif; fill: ${colors.ink}; }
+    .name { font-family: ${fontFamily}; fill: #202124; }
+    .default-name { font-size: 32px; font-weight: 600; }
+    .bold-name { font-size: 64px; font-weight: 700; }
+    .job, .value, .label { font-family: ${fontFamily}; fill: #202124; }
+    .job { font-size: 12px; font-weight: 400; }
+    .label { font-size: 12px; font-weight: 700; }
+    .value { font-size: 12px; font-weight: 400; }
   </style>
   ${logo}
-  ${text(card.name, 150, 220, "name")}
-  ${text(card.headline, 155, 285, "headline")}
+  ${arrow}
+  ${bold ? boldHeader : defaultHeader}
   ${divider}
-  ${text(card.phone, 150, 610, "value")}
-  ${text(card.tel, 150, 665, "value")}
-  ${text(card.email, 150, 720, "value")}
-  ${text(card.organizationAddress, 150, 815, "value")}
-  <text x="150" y="580" class="label">CONTACT</text>
+  ${bold ? boldBody : defaultBody}
   </svg>`;
 };
 
 export const generatePortfolioFrontImage = async (portfolio: Portfolio): Promise<Buffer> => {
-  const card = portfolio.card as unknown as BusinessCardData;
-  const logoDataUri = await fetchLogoDataUri(card.logoUrl);
-  const svg = renderSvg(card, portfolio.cardDesignId === "bold", logoDataUri);
+  const svg = await buildPortfolioFrontSvg(portfolio);
   return sharp(Buffer.from(svg)).png().toBuffer();
 };
 
