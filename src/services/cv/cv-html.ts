@@ -47,9 +47,9 @@ h1 { margin: 0; font-size: 26pt; line-height: 1.1; }
 .links a + a::before { content: " | "; color: #111; }
 .contacts { text-align: right; }
 a { color: #111; text-decoration: underline; }
-section { margin-top: 12px; }
-h2 { margin: 0 0 6px; padding-bottom: 1px; border-bottom: 0.7px solid #333; color: #1f3a93; font-size: 12pt; }
-.entry { margin: 0 0 9px 14px; break-inside: avoid; }
+section { margin-top: 10px; }
+h2 { break-after: avoid; margin: 0 0 6px; padding-bottom: 1px; border-bottom: 0.7px solid #333; color: #1f3a93; font-size: 12pt; }
+.entry { margin: 0 0 8px 14px; break-inside: avoid; }
 .row { display: flex; justify-content: space-between; gap: 12px; }
 .row.main { font-size: 10.5pt; }
 .row.sub { font-size: 9.5pt; }
