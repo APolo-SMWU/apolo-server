@@ -101,6 +101,19 @@ type PortfolioFrontImageControllerDependencies = {
   generatePortfolioFrontImage: typeof generatePortfolioFrontImage;
 };
 
+const sanitizeDownloadName = (value: string) => value
+  .trim()
+  .replace(/[\\/:*?"<>|\r\n]+/g, "-")
+  .replace(/\s+/g, " ") || "portfolio";
+
+export const buildFrontImageContentDisposition = (name: string) => {
+  const normalizedName = sanitizeDownloadName(name);
+  const asciiName = normalizedName.replace(/[^\x20-\x7E]/g, "");
+  const fallbackName = asciiName || "portfolio";
+  const encodedName = encodeURIComponent(`${normalizedName}-front.png`);
+  return `attachment; filename="${fallbackName}-front.png"; filename*=UTF-8''${encodedName}`;
+};
+
 export const createExportPortfolioFrontImageController = (
   dependencies: PortfolioFrontImageControllerDependencies = {
     getOwnedOnlineCard,
@@ -110,12 +123,9 @@ export const createExportPortfolioFrontImageController = (
   const { portfolioId } = validateRequest(portfolioIdParamSchema, req.params);
   const portfolio = await dependencies.getOwnedOnlineCard(requireUser(req), portfolioId);
   const image = await dependencies.generatePortfolioFrontImage(portfolio);
-  const name = String((portfolio.card as { name?: unknown }).name ?? "portfolio")
-    .trim()
-    .replace(/[\\/:*?"<>|\r\n]+/g, "-")
-    .replace(/\s+/g, " ") || "portfolio";
+  const name = String((portfolio.card as { name?: unknown }).name ?? "portfolio");
   res.setHeader("Content-Type", "image/png");
-  res.setHeader("Content-Disposition", `attachment; filename="${name}-front.png"`);
+  res.setHeader("Content-Disposition", buildFrontImageContentDisposition(name));
   return res.status(200).send(image);
 };
 
