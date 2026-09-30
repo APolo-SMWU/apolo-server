@@ -161,10 +161,18 @@ const worksBlockSchema = z
 
 const skillItemSchema = z
   .object({
-    entityId: entityIdSchema,
+    entityId: entityIdSchema.optional(),
+    entityIds: z.array(entityIdSchema).min(1).optional(),
     name: shortText("기술", 100),
   })
-  .strict();
+  .strict()
+  .refine((item) => Boolean(item.entityIds?.length || item.entityId), {
+    message: "기술 KG ID가 하나 이상 필요합니다.",
+  })
+  .transform(({ entityId, entityIds, ...item }) => ({
+    ...item,
+    entityIds: entityIds ?? [entityId!],
+  }));
 
 const skillsBlockSchema = z
   .object({

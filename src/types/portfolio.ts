@@ -185,6 +185,7 @@ export interface SkillCategory {
 export interface SkillItem {
   id?: string;
   entityId?: string | undefined;
+  entityIds?: string[] | undefined;
   name: string;
 }
 

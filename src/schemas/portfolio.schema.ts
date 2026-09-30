@@ -195,6 +195,7 @@ export const skillCategorySchema = z
         .object({
           id: generatedIdSchema,
           entityId: entityIdSchema.optional(),
+          entityIds: z.array(entityIdSchema).min(1).optional(),
           name: requiredString("기술", 100),
         })
         .strict(),
