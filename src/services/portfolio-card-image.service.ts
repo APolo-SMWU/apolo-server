@@ -60,9 +60,9 @@ export const buildPortfolioFrontSvg = async (portfolio: Portfolio): Promise<stri
       ? `<image href="${logoDataUri}" x="320" y="162" width="50" height="50" preserveAspectRatio="xMidYMid meet"/>`
       : `<image href="${logoDataUri}" x="20" y="20" width="70" height="70" preserveAspectRatio="xMidYMid meet"/>`
     : "";
-  const arrow = `<path d="M360 31h10v10M370 31l-12 12" fill="none" stroke="#202124" stroke-width="1.2"/>`;
-  const border = `<rect x="0.75" y="0.75" width="388.5" height="215.5" rx="12" fill="#ffffff" stroke="#202124" stroke-width="1.5"/>`;
-  const divider = `<line x1="20" y1="100" x2="370" y2="100" stroke="#202124" stroke-width="0.75"/>`;
+  const arrow = `<path d="M360 31h10v10M370 31l-12 12" fill="none" stroke="#202124" stroke-width="0.6"/>`;
+  const border = `<rect x="0.75" y="0.75" width="388.5" height="215.5" rx="12" fill="#ffffff" stroke="#202124" stroke-width="0.25"/>`;
+  const divider = `<line x1="20" y1="100" x2="370" y2="100" stroke="#202124" stroke-width="0.25"/>`;
   const label = (value: string, x: number, y: number) => text(value, x, y, "label");
   const value = (content: string | null | undefined, x: number, y: number) => text(content, x, y, "value");
   const professional = portfolio.userType !== "student";
@@ -73,7 +73,7 @@ export const buildPortfolioFrontSvg = async (portfolio: Portfolio): Promise<stri
   </g>`;
   const boldHeader = `<g>
     ${text(card.headline, 20, 39, "job")}
-    ${text(card.name, 20, 84, "name bold-name")}
+    ${text(card.name, 20, 95, "name bold-name")}
   </g>`;
   const defaultBody = `<g>
     ${professional ? `${label("Tel.", 20, 119)}${value(card.tel, 84, 119)}` : ""}
