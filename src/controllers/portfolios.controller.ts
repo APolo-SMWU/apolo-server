@@ -10,6 +10,7 @@ import { parsePortfolioGenerationInput } from "../services/portfolio-generation-
 import { createShareLink, getSharedOnlineCard } from "../services/portfolio-share.service";
 import { getPortfolioAvatarUrl, uploadPortfolioAvatar, withSignedAvatarUrl } from "../services/portfolio-avatar.service";
 import { uploadWorkImage } from "../services/portfolio-work-image.service";
+import { generatePortfolioFrontImage } from "../services/portfolio-card-image.service";
 
 const requireUser = (req: AuthRequest) => {
   if (!req.user?.userId) throw new Error("UNAUTHORIZED");
@@ -94,6 +95,31 @@ export const uploadPortfolioWorkImageController = async (req: AuthRequest, res: 
     portfolio: await toPortfolioResponse(await withSignedAvatarUrl(portfolio)),
   });
 };
+
+type PortfolioFrontImageControllerDependencies = {
+  getOwnedOnlineCard: typeof getOwnedOnlineCard;
+  generatePortfolioFrontImage: typeof generatePortfolioFrontImage;
+};
+
+export const createExportPortfolioFrontImageController = (
+  dependencies: PortfolioFrontImageControllerDependencies = {
+    getOwnedOnlineCard,
+    generatePortfolioFrontImage,
+  },
+) => async (req: AuthRequest, res: Response) => {
+  const { portfolioId } = validateRequest(portfolioIdParamSchema, req.params);
+  const portfolio = await dependencies.getOwnedOnlineCard(requireUser(req), portfolioId);
+  const image = await dependencies.generatePortfolioFrontImage(portfolio);
+  const name = String((portfolio.card as { name?: unknown }).name ?? "portfolio")
+    .trim()
+    .replace(/[\\/:*?"<>|\r\n]+/g, "-")
+    .replace(/\s+/g, " ") || "portfolio";
+  res.setHeader("Content-Type", "image/png");
+  res.setHeader("Content-Disposition", `attachment; filename="${name}-front.png"`);
+  return res.status(200).send(image);
+};
+
+export const exportPortfolioFrontImageController = createExportPortfolioFrontImageController();
 export const getSharedController = async (req: Request, res: Response) => {
   const { shareId } = validateRequest(shareIdParamSchema, req.params);
   return res.status(200).json({
