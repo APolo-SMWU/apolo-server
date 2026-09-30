@@ -114,7 +114,6 @@ export interface AwardItem {
   title: string;
   issuer?: string | null;
   date: string | null;
-  description?: string | null;
 }
 
 export interface AwardsBlock {

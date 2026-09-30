@@ -120,7 +120,6 @@ const awardsBlockSchema = {
           title: { type: "string" },
           issuer: { type: "string", nullable: true },
           date: nullableDateProperty,
-          description: { type: "string", nullable: true },
         },
       },
     },
