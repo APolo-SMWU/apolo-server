@@ -62,7 +62,7 @@ export const buildPortfolioFrontSvg = async (portfolio: Portfolio): Promise<stri
     : "";
   const arrow = `<path d="M360 31h10v10M370 31l-12 12" fill="none" stroke="#202124" stroke-width="0.6"/>`;
   const border = `<rect x="0.75" y="0.75" width="388.5" height="215.5" rx="12" fill="#ffffff" stroke="#202124" stroke-width="0.25"/>`;
-  const divider = `<line x1="20" y1="100" x2="370" y2="100" stroke="#202124" stroke-width="0.25"/>`;
+  const divider = `<line x1="20" y1="120" x2="370" y2="120" stroke="#202124" stroke-width="0.25"/>`;
   const label = (value: string, x: number, y: number) => text(value, x, y, "label");
   const value = (content: string | null | undefined, x: number, y: number) => text(content, x, y, "value");
   const professional = portfolio.userType !== "student";
@@ -76,16 +76,16 @@ export const buildPortfolioFrontSvg = async (portfolio: Portfolio): Promise<stri
     ${text(card.name, 20, 95, "name bold-name")}
   </g>`;
   const defaultBody = `<g>
-    ${professional ? `${label("Tel.", 20, 119)}${value(card.tel, 84, 119)}` : ""}
-    ${label("Mobile.", 20, professional ? 139 : 119)}${value(card.phone, 84, professional ? 139 : 119)}
-    ${label("E-mail.", 20, professional ? 159 : 139)}${value(card.email, 84, professional ? 159 : 139)}
-    ${value(card.organizationAddress, 20, professional ? 181 : 161)}
+    ${professional ? `${label("Tel.", 20, 139)}${value(card.tel, 84, 139)}` : ""}
+    ${label("Mobile.", 20, professional ? 157 : 139)}${value(card.phone, 84, professional ? 157 : 139)}
+    ${label("E-mail.", 20, professional ? 175 : 157)}${value(card.email, 84, professional ? 175 : 157)}
+    ${value(card.organizationAddress, 20, professional ? 193 : 175)}
   </g>`;
   const boldBody = `<g>
-    ${professional ? `${label("Tel.", 20, 121)}${value(card.tel, 20, 135)}` : ""}
-    ${label("E-mail.", 140, 121)}${value(card.email, 140, 135)}
-    ${label("Mobile.", 20, professional ? 157 : 121)}${value(card.phone, 20, professional ? 171 : 135)}
-    ${label("ADDRESS", 140, professional ? 157 : 157)}${value(card.organizationAddress, 140, professional ? 171 : 171)}
+    ${professional ? `${label("Tel.", 20, 141)}${value(card.tel, 20, 155)}` : ""}
+    ${label("E-mail.", 140, 141)}${value(card.email, 140, 155)}
+    ${label("Mobile.", 20, professional ? 177 : 141)}${value(card.phone, 20, professional ? 191 : 155)}
+    ${label("ADDRESS", 140, 177)}${value(card.organizationAddress, 140, 191)}
   </g>`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 390 217">
