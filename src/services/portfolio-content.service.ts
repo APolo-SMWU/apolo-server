@@ -245,19 +245,36 @@ export const mergeRefreshedBlocks = (
           categories.push(incomingCategory);
           continue;
         }
-        const knownEntityIds = new Set(
-          category.items
-            .map((item) => normalized(item.entityId ?? ""))
-            .filter(Boolean),
-        );
-        const knownNames = new Set(category.items.map((item) => normalized(item.name)));
         for (const item of incomingCategory.items) {
-          const entityId = normalized(item.entityId ?? "");
-          const name = normalized(item.name);
-          if ((entityId && knownEntityIds.has(entityId)) || knownNames.has(name)) continue;
-          category.items.push(item);
-          if (entityId) knownEntityIds.add(entityId);
-          knownNames.add(name);
+          const incomingIds = skillEntityIds(item);
+          const incomingName = normalized(item.name);
+          const matchingIndexes = category.items.flatMap((candidate, index) => {
+            const candidateIds = skillEntityIds(candidate);
+            const hasSharedId = incomingIds.some((id) => candidateIds.includes(id));
+            const hasSameName = normalized(candidate.name) === incomingName;
+            return hasSharedId || hasSameName ? [index] : [];
+          });
+          if (matchingIndexes.length === 0) {
+            category.items.push(item);
+            continue;
+          }
+
+          const matchedItems = matchingIndexes.map((index) => category.items[index]!);
+          const allIds = [...new Set([...matchedItems.flatMap((candidate) => skillEntityIds(candidate)), ...incomingIds])];
+          const currentHasGroupedIds = matchedItems.some((candidate) => skillEntityIds(candidate).length > 1);
+          const keepCurrentRepresentative = incomingIds.length === 1 && currentHasGroupedIds;
+          const representative = keepCurrentRepresentative ? matchedItems[0]! : item;
+          const { entityId: _legacyEntityId, ...representativeFields } = representative;
+          const mergedItem = {
+            ...representativeFields,
+            ...(matchedItems[0]!.id ? { id: matchedItems[0]!.id } : {}),
+            entityIds: allIds,
+            name: representative.name,
+          };
+          const firstIndex = matchingIndexes[0]!;
+          const matchingSet = new Set(matchingIndexes);
+          category.items = category.items.filter((_, index) => !matchingSet.has(index));
+          category.items.splice(firstIndex, 0, mergedItem);
         }
       }
       current[existingIndex] = { ...existing, categories };
@@ -277,4 +294,17 @@ export const mergeRefreshedBlocks = (
   }
 
   return current;
+};
+
+const skillEntityIds = (item: {
+  entityId?: string | undefined;
+  entityIds?: string[] | undefined;
+}): string[] => {
+  const values = [...(item.entityIds ?? []), ...(item.entityId ? [item.entityId] : [])];
+  const unique = new Map<string, string>();
+  for (const value of values) {
+    const key = normalized(value);
+    if (key && !unique.has(key)) unique.set(key, value);
+  }
+  return [...unique.values()];
 };

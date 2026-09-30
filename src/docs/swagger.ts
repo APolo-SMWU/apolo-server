@@ -210,6 +210,12 @@ const skillsBlockSchema = {
               properties: {
                 id: { type: "string", format: "uuid" },
                 entityId: entityIdProperty,
+                entityIds: {
+                  type: "array",
+                  items: { type: "string" },
+                  minItems: 1,
+                  description: "표시 항목을 구성하는 모든 KG Skill ID. 여러 서비스를 플랫폼명으로 묶으면 구성 Skill ID를 모두 보낸다.",
+                },
                 name: { type: "string" },
               },
             },
@@ -340,7 +346,7 @@ const swaggerSpec = {
         type: "object",
         minProperties: 1,
         additionalProperties: false,
-        description: "변경할 항목만 보낸다. blocks를 보낼 때 기존 식별자는 보존하고 직접 추가한 항목은 id와 entityId를 생략할 수 있다.",
+        description: "변경할 항목만 보낸다. blocks를 보낼 때 기존 식별자는 보존하고 직접 추가한 항목은 id와 KG entityId/entityIds를 생략할 수 있다.",
         properties: {
           title: { type: "string", minLength: 1, maxLength: 100 },
           cardDesignId: { type: "string", minLength: 1, maxLength: 100 },
