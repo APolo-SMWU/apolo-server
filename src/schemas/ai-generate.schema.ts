@@ -88,7 +88,6 @@ const awardItemSchema = z
     title: shortText("수상명"),
     issuer: optionalNullableText("수여 기관"),
     date: startDateSchema,
-    description: optionalNullableText("설명", 10_000),
   })
   .strict();
 

@@ -7,6 +7,10 @@ const migrateTimelineItem = (value: unknown, blockType?: string): unknown => {
   if (!isRecord(value)) return value;
 
   const migrated = { ...value };
+  if (blockType === "awards") {
+    // 기존 Portfolio에 저장된 awards.description은 새 계약에서 제거한다.
+    delete migrated.description;
+  }
   if (blockType === "education" || blockType === "experience" || blockType === "activities") {
     migrated.startDate = nullableDate(migrated.startDate);
     migrated.endDate = nullableDate(migrated.endDate);

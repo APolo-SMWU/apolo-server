@@ -134,7 +134,6 @@ export const awardItemSchema = z
     title: requiredString("수상명", 200),
     issuer: optionalNullableText("수여 기관", 200),
     date: nullableStartDateSchema,
-    description: optionalNullableText("설명", 10_000),
   })
   .strict();
 
