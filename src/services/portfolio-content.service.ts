@@ -12,6 +12,9 @@ import {
 import { migrateLegacyBlocks } from "./legacy-block-compatibility";
 import type {
   ContentBlock,
+  SkillCategory,
+  SkillItem,
+  SkillsBlock,
   TimelineBlock,
   TimelineItem,
   WorkItem,
@@ -233,6 +236,111 @@ const onlyNewItems = <T extends object>(items: T[], known: T[], blockType: strin
   return additions;
 };
 
+const mergeRefreshedSkills = (existing: SkillsBlock, incoming: SkillsBlock): SkillsBlock => {
+  const categories: SkillCategory[] = existing.categories.map((category) => ({
+    ...category,
+    items: [...category.items],
+  }));
+  const initiallyEmptyCategories = new Set(
+    categories.filter((category) => category.items.length === 0),
+  );
+  const seenEntityIds = new Set<string>();
+
+  for (const category of categories) {
+    category.items = category.items.flatMap((item) => {
+      const entityIds = skillEntityIds(item);
+      if (entityIds.length === 0) return [item];
+
+      const uniqueEntityIds = entityIds.filter((entityId) => {
+        const key = normalized(entityId);
+        if (seenEntityIds.has(key)) return false;
+        seenEntityIds.add(key);
+        return true;
+      });
+      if (uniqueEntityIds.length === 0) return [];
+      if (uniqueEntityIds.length === entityIds.length) return [item];
+      return [{ ...item, entityIds: uniqueEntityIds }];
+    });
+  }
+
+  for (const incomingCategory of incoming.categories) {
+    for (const item of incomingCategory.items) {
+      let targetCategory = categories.find(
+        (candidate) => normalized(candidate.category) === normalized(incomingCategory.category),
+      );
+      if (!targetCategory) {
+        targetCategory = { ...incomingCategory, items: [] };
+        categories.push(targetCategory);
+      }
+
+      const incomingIds = skillEntityIds(item);
+      const incomingIdKeys = new Set(incomingIds.map((id) => normalized(id)));
+      const incomingName = normalized(item.name);
+      const matchedItems = categories.flatMap((category) =>
+        category.items
+          .filter((candidate) => {
+            const sharesEntityId = skillEntityIds(candidate).some((id) =>
+              incomingIdKeys.has(normalized(id)),
+            );
+            const sameNameInTarget =
+              category === targetCategory && normalized(candidate.name) === incomingName;
+            return sharesEntityId || sameNameInTarget;
+          })
+          .map((candidate) => ({ category, item: candidate })),
+      );
+
+      const matchedSkillItems = matchedItems.map(({ item: matched }) => matched);
+      const targetMatches = matchedItems.filter(({ category }) => category === targetCategory);
+      const targetInsertionIndex = targetMatches.length
+        ? targetCategory.items.indexOf(targetMatches[0]!.item)
+        : targetCategory.items.length;
+      const allIds = skillEntityIds({
+        entityIds: [...matchedSkillItems.flatMap(skillEntityIds), ...incomingIds],
+      });
+      const currentHasGroupedIds = matchedSkillItems.some(
+        (matched) => skillEntityIds(matched).length > 1,
+      );
+      const keepCurrentRepresentative = incomingIds.length === 1 && currentHasGroupedIds;
+      const representative = keepCurrentRepresentative
+        ? matchedSkillItems.find((matched) => skillEntityIds(matched).length > 1)!
+        : item;
+      const preservedItem = targetMatches[0]?.item ?? matchedSkillItems[0];
+      const { entityId: _legacyEntityId, entityIds: _entityIds, ...representativeFields } =
+        representative;
+      const mergedItem: SkillItem = {
+        ...representativeFields,
+        ...(preservedItem?.id ? { id: preservedItem.id } : {}),
+        ...(allIds.length > 0 ? { entityIds: allIds } : {}),
+        name: representative.name,
+      };
+
+      for (const category of categories) {
+        const matchedInCategory = new Set(
+          matchedItems
+            .filter((match) => match.category === category)
+            .map((match) => match.item),
+        );
+        if (matchedInCategory.size > 0) {
+          category.items = category.items.filter((candidate) => !matchedInCategory.has(candidate));
+        }
+      }
+
+      targetCategory.items.splice(
+        Math.min(targetInsertionIndex, targetCategory.items.length),
+        0,
+        mergedItem,
+      );
+    }
+  }
+
+  return {
+    ...existing,
+    categories: categories.filter(
+      (category) => category.items.length > 0 || initiallyEmptyCategories.has(category),
+    ),
+  };
+};
+
 export const mergeRefreshedBlocks = (
   currentValue: unknown,
   refreshedValue: unknown,
@@ -261,48 +369,7 @@ export const mergeRefreshedBlocks = (
     }
 
     if (existing.type === "skills" && incoming.type === "skills") {
-      const categories = existing.categories.map((category) => ({ ...category, items: [...category.items] }));
-      for (const incomingCategory of incoming.categories) {
-        const category = categories.find(
-          (candidate) => normalized(candidate.category) === normalized(incomingCategory.category),
-        );
-        if (!category) {
-          categories.push(incomingCategory);
-          continue;
-        }
-        for (const item of incomingCategory.items) {
-          const incomingIds = skillEntityIds(item);
-          const incomingName = normalized(item.name);
-          const matchingIndexes = category.items.flatMap((candidate, index) => {
-            const candidateIds = skillEntityIds(candidate);
-            const hasSharedId = incomingIds.some((id) => candidateIds.includes(id));
-            const hasSameName = normalized(candidate.name) === incomingName;
-            return hasSharedId || hasSameName ? [index] : [];
-          });
-          if (matchingIndexes.length === 0) {
-            category.items.push(item);
-            continue;
-          }
-
-          const matchedItems = matchingIndexes.map((index) => category.items[index]!);
-          const allIds = [...new Set([...matchedItems.flatMap((candidate) => skillEntityIds(candidate)), ...incomingIds])];
-          const currentHasGroupedIds = matchedItems.some((candidate) => skillEntityIds(candidate).length > 1);
-          const keepCurrentRepresentative = incomingIds.length === 1 && currentHasGroupedIds;
-          const representative = keepCurrentRepresentative ? matchedItems[0]! : item;
-          const { entityId: _legacyEntityId, ...representativeFields } = representative;
-          const mergedItem = {
-            ...representativeFields,
-            ...(matchedItems[0]!.id ? { id: matchedItems[0]!.id } : {}),
-            entityIds: allIds,
-            name: representative.name,
-          };
-          const firstIndex = matchingIndexes[0]!;
-          const matchingSet = new Set(matchingIndexes);
-          category.items = category.items.filter((_, index) => !matchingSet.has(index));
-          category.items.splice(firstIndex, 0, mergedItem);
-        }
-      }
-      current[existingIndex] = { ...existing, categories };
+      current[existingIndex] = mergeRefreshedSkills(existing, incoming);
       continue;
     }
 
