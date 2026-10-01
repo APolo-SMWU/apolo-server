@@ -1,0 +1,3 @@
+ALTER TABLE "Portfolio" ADD COLUMN "cvKey" TEXT,
+ADD COLUMN "cvGeneratedAt" TIMESTAMP(3),
+ADD COLUMN "cvKgVersion" INTEGER;
