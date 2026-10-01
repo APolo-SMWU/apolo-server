@@ -60,7 +60,6 @@ export const buildPortfolioFrontSvg = async (portfolio: Portfolio): Promise<stri
       ? `<image href="${logoDataUri}" x="320" y="162" width="50" height="50" preserveAspectRatio="xMidYMid meet"/>`
       : `<image href="${logoDataUri}" x="20" y="20" width="70" height="70" preserveAspectRatio="xMidYMid meet"/>`
     : "";
-  const arrow = `<path d="M360 24h10v10M370 24l-12 12" fill="none" stroke="#202124" stroke-width="0.6"/>`;
   const border = `<rect x="0.75" y="0.75" width="388.5" height="215.5" rx="12" fill="#ffffff" stroke="#202124" stroke-width="0.25"/>`;
   const divider = `<line x1="20" y1="120" x2="370" y2="120" stroke="#202124" stroke-width="0.25"/>`;
   const label = (value: string, x: number, y: number) => text(value, x, y, "label");
@@ -100,7 +99,6 @@ export const buildPortfolioFrontSvg = async (portfolio: Portfolio): Promise<stri
     .value { font-size: 12px; font-weight: 400; }
   </style>
   ${logo}
-  ${arrow}
   ${bold ? boldHeader : defaultHeader}
   ${divider}
   ${bold ? boldBody : defaultBody}
