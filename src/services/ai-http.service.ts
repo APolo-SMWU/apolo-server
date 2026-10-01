@@ -1,7 +1,8 @@
 import { AppError } from "../errors/app-error";
+import { cvGenerateResponseSchema } from "../schemas/ai-cv.schema";
 import { generateResponseSchema } from "../schemas/ai-generate.schema";
 import type { GenerateRequest } from "./ai-generate.mapper";
-import type { UpdateContentRequest } from "./ai.service";
+import type { CvGenerateRequest, UpdateContentRequest } from "./ai.service";
 
 type JsonSchema<T> = {
   safeParse(value: unknown): { success: true; data: T } | { success: false };
@@ -12,9 +13,10 @@ const postAiJson = async <T>(
   request: unknown,
   schema: JsonSchema<T>,
   requestFailureMessage: string,
+  timeout: { env: string; fallbackMs: string } = { env: "AI_TIMEOUT_MS", fallbackMs: "30000" },
 ): Promise<T> => {
   let url: URL;
-  const timeoutMs = Number(process.env.AI_TIMEOUT_MS ?? "30000");
+  const timeoutMs = Number(process.env[timeout.env] ?? timeout.fallbackMs);
   try {
     const base = new URL(process.env.AI_BASE_URL || "http://127.0.0.1:8000");
     if (!["http:", "https:"].includes(base.protocol) || base.username || base.password) {
@@ -77,4 +79,14 @@ export const updateContentViaHttp = (request: UpdateContentRequest) =>
     request,
     generateResponseSchema,
     "AI 서버가 콘텐츠 갱신 요청을 처리하지 못했습니다.",
+  );
+
+/** LLM 호출이 길어 다른 AI 호출과 별도 타임아웃(AI_CV_TIMEOUT_MS)을 쓴다. */
+export const generateCvViaHttp = (request: CvGenerateRequest) =>
+  postAiJson(
+    "/generate-cv",
+    request,
+    cvGenerateResponseSchema,
+    "AI 서버가 CV 생성 요청을 처리하지 못했습니다.",
+    { env: "AI_CV_TIMEOUT_MS", fallbackMs: "120000" },
   );

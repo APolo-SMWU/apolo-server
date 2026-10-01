@@ -17,12 +17,12 @@ export interface CvHeader {
 export interface CvEntry {
   title: string;
   /** 제목 오른쪽에 표시. 예: "2024.03 – 2026.01" */
-  date?: string;
+  date?: string | undefined;
   /** 제목 아래 줄의 기관·역할 */
-  subtitle?: string;
-  location?: string;
-  link?: CvLink;
-  bullets?: string[];
+  subtitle?: string | undefined;
+  location?: string | undefined;
+  link?: CvLink | undefined;
+  bullets?: string[] | undefined;
 }
 
 export interface CvSection {

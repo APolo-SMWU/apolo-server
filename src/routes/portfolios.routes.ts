@@ -4,6 +4,7 @@ import { createPortfolioController, getMyPortfoliosController, getPortfolioByIdC
 import { portfolioAvatarUpload } from "../middlewares/portfolio-avatar-upload";
 import { portfolioWorkImageUpload } from "../middlewares/portfolio-work-image-upload";
 import { portfolioGenerationUpload } from "../middlewares/portfolio-generation-upload";
+import { generateCvController, getCvStatusController } from "../controllers/cv.controller";
 
 const router = Router();
 router.get("/", authMiddleware, getMyPortfoliosController);
@@ -13,6 +14,8 @@ router.patch("/:portfolioId", authMiddleware, updatePortfolioController);
 router.delete("/:portfolioId", authMiddleware, deletePortfolioController);
 router.post("/:portfolioId/update-content", authMiddleware, updateContentController);
 router.post("/:portfolioId/share", authMiddleware, createShareController);
+router.get("/:portfolioId/cv", authMiddleware, getCvStatusController);
+router.post("/:portfolioId/cv", authMiddleware, generateCvController);
 router.post("/:portfolioId/export/front-image", authMiddleware, exportPortfolioFrontImageController);
 router.post("/:portfolioId/profile/avatar", authMiddleware, portfolioAvatarUpload, uploadPortfolioAvatarController);
 router.get("/:portfolioId/profile/avatar", authMiddleware, getPortfolioAvatarController);

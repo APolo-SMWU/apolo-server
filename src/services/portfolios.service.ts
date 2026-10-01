@@ -289,8 +289,9 @@ export const createPortfolioService = (
     userId: number,
     portfolioId: number,
   ): Promise<void> => {
-    await getOwnedOnlineCard(userId, portfolioId, { backfill: false });
+    const existing = await getOwnedOnlineCard(userId, portfolioId, { backfill: false });
     await db.portfolio.delete({ where: { id: portfolioId } });
+    if (existing.cvKey) await deletePrivateObject(existing.cvKey).catch(() => undefined);
   };
 
   const refreshOnlineCardContent = async (

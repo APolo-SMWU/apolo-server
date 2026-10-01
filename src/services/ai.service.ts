@@ -1,4 +1,5 @@
-import { generateViaHttp, updateContentViaHttp } from "./ai-http.service";
+import { generateCvViaHttp, generateViaHttp, updateContentViaHttp } from "./ai-http.service";
+import type { CvSection } from "../types/cv";
 import type { GenerateRequest } from "./ai-generate.mapper";
 
 export interface OnlineCardUserProfile {
@@ -22,6 +23,17 @@ export interface UpdateContentRequest {
   requirements?: string;
 }
 
+export interface CvGenerateRequest {
+  userId: number;
+  requirements?: string;
+}
+
+export interface GeneratedCv {
+  sections: CvSection[];
+  meta: unknown;
+  warnings: unknown;
+}
+
 export interface GeneratedOnlineCard {
   blocks: unknown;
   meta: unknown;
@@ -31,11 +43,13 @@ export interface GeneratedOnlineCard {
 export interface OnlineCardAiProvider {
   generate(request: GenerateRequest): Promise<GeneratedOnlineCard>;
   updateContent(request: UpdateContentRequest): Promise<GeneratedOnlineCard>;
+  generateCv(request: CvGenerateRequest): Promise<GeneratedCv>;
 }
 
 const httpProvider: OnlineCardAiProvider = {
   generate: generateViaHttp,
   updateContent: updateContentViaHttp,
+  generateCv: generateCvViaHttp,
 };
 
 let activeProvider: OnlineCardAiProvider = httpProvider;
@@ -51,4 +65,5 @@ export const resetOnlineCardAiProvider = () => {
 export const onlineCardAiService: OnlineCardAiProvider = {
   generate: (request) => activeProvider.generate(request),
   updateContent: (request) => activeProvider.updateContent(request),
+  generateCv: (request) => activeProvider.generateCv(request),
 };

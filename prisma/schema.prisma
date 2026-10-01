@@ -58,6 +58,9 @@ model Portfolio {
   blocks          Json
   aiMeta          Json?
   aiWarnings      Json?
+  cvKey           String?
+  cvGeneratedAt   DateTime?
+  cvKgVersion     Int?
   sourceLinks     Json
   sourceSnapshots Json
   schemaVersion   Int                   @default(1)

@@ -423,6 +423,8 @@ export const updatePortfolioSchema = z
 
 export const updateContentSchema = z.object({}).strict();
 
+export const generateCvSchema = z.object({ force: z.boolean().optional() }).strict();
+
 export const sourceSnapshotSchema = z
   .object({
     url: httpUrlSchema,

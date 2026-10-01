@@ -208,26 +208,30 @@ export const aiContentBlockSchema = z.discriminatedUnion("type", [
   skillsBlockSchema,
 ]);
 
+export const aiMetaSchema = z
+  .object({
+    ontologySchemaVersion: z.string().min(1),
+    knowledgeGraphVersion: z.number().int().nonnegative(),
+  })
+  .strict();
+
+export const aiWarningsSchema = z
+  .array(
+    z
+      .object({
+        source: z.string().optional(),
+        code: z.string().min(1),
+        message: z.string().min(1),
+      })
+      .strict(),
+  )
+  .default([]);
+
 export const generateResponseSchema = z
   .object({
     blocks: z.array(aiContentBlockSchema),
-    meta: z
-      .object({
-        ontologySchemaVersion: z.string().min(1),
-        knowledgeGraphVersion: z.number().int().nonnegative(),
-      })
-      .strict(),
-    warnings: z
-      .array(
-        z
-          .object({
-            source: z.string().optional(),
-            code: z.string().min(1),
-            message: z.string().min(1),
-          })
-          .strict(),
-      )
-      .default([]),
+    meta: aiMetaSchema,
+    warnings: aiWarningsSchema,
   })
   .strict();
 
