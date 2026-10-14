@@ -13,7 +13,7 @@ const postAiJson = async <T>(
   request: unknown,
   schema: JsonSchema<T>,
   requestFailureMessage: string,
-  timeout: { env: string; fallbackMs: string } = { env: "AI_TIMEOUT_MS", fallbackMs: "30000" },
+  timeout: { env: string; fallbackMs: string } = { env: "AI_TIMEOUT_MS", fallbackMs: "900000" },
 ): Promise<T> => {
   let url: URL;
   const timeoutMs = Number(process.env[timeout.env] ?? timeout.fallbackMs);
