@@ -40,6 +40,7 @@ import { deletePrivateObject, putPrivateObject } from "./s3.service";
 import {
   materializeWorkImages,
   preserveStoredWorkImageKeys,
+  unusedWorkImageKeys,
 } from "./portfolio-work-image";
 
 export type PortfolioGenerationAttachment = {
@@ -272,6 +273,13 @@ export const createPortfolioService = (
       data.blocks = asJson(materialized.blocks);
       try {
         const updated = await db.portfolio.update({ where: { id: portfolioId }, data });
+        await Promise.all(
+          unusedWorkImageKeys(currentBlocks, materialized.blocks, portfolioId).map((key) =>
+            deletePrivateObject(key).catch((error) => {
+              console.error("기존 프로젝트 이미지 삭제에 실패했습니다.", error);
+            }),
+          ),
+        );
         return updated;
       } catch (error) {
         await Promise.all(materialized.uploadedKeys.map((key) => deletePrivateObject(key).catch(() => undefined)));

@@ -129,6 +129,20 @@ export const materializeWorkImages = async (
   return { blocks: nextBlocks, uploadedKeys };
 };
 
+const workImageKeys = (blocks: ContentBlock[]) =>
+  new Set(workBlocks(blocks).flatMap((block) => block.items.flatMap((item) => (item.imageKey ? [item.imageKey] : []))));
+
+export const unusedWorkImageKeys = (
+  previousBlocks: ContentBlock[],
+  nextBlocks: ContentBlock[],
+  portfolioId: number,
+): string[] => {
+  const nextKeys = workImageKeys(nextBlocks);
+  return [...workImageKeys(previousBlocks)].filter(
+    (key) => !nextKeys.has(key) && key.startsWith(`portfolios/${portfolioId}/works/`),
+  );
+};
+
 export const withSignedWorkImageUrls = async (
   blocks: ContentBlock[],
   signUrl: (key: string) => Promise<string> = createPrivateObjectUrl,
