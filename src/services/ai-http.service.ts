@@ -1,3 +1,4 @@
+import { Agent, fetch } from "undici";
 import { AppError } from "../errors/app-error";
 import { cvGenerateResponseSchema } from "../schemas/ai-cv.schema";
 import { generateResponseSchema } from "../schemas/ai-generate.schema";
@@ -6,6 +7,17 @@ import type { CvGenerateRequest, UpdateContentRequest } from "./ai.service";
 
 type JsonSchema<T> = {
   safeParse(value: unknown): { success: true; data: T } | { success: false };
+};
+
+// undici 기본 headers/bodyTimeout(300s)이 timeoutMs보다 먼저 끊지 않도록 맞춘다.
+const dispatchers = new Map<number, Agent>();
+const dispatcherFor = (timeoutMs: number) => {
+  let agent = dispatchers.get(timeoutMs);
+  if (!agent) {
+    agent = new Agent({ headersTimeout: timeoutMs, bodyTimeout: timeoutMs });
+    dispatchers.set(timeoutMs, agent);
+  }
+  return agent;
 };
 
 const postAiJson = async <T>(
@@ -38,6 +50,7 @@ const postAiJson = async <T>(
       body: JSON.stringify(request),
       signal,
       redirect: "error",
+      dispatcher: dispatcherFor(timeoutMs),
     });
     if (!response.ok) {
       await response.body?.cancel();
