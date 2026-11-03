@@ -1,13 +1,19 @@
 name: Deploy
 on:
-  workflow_dispatch:      # 지금은 수동 실행 버튼으로만 실행됨 (자동 배포는 나중에)
+  push:
+    branches: [main]      # main에 병합(push)되면 자동 실행
+  workflow_dispatch:      # Actions 탭의 Run workflow 버튼으로 수동 실행도 가능
 
 concurrency:
   group: deploy-production
-  cancel-in-progress: false
+  cancel-in-progress: false      # 배포가 겹치면 앞의 배포를 끊지 않고 순서대로 처리
 
 jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml      # 빌드 확인이 통과해야 다음 단계로 진행
+
   deploy:
+    needs: ci                              # ci 가 ✅ 일 때만 실행
     runs-on: ubuntu-latest
     steps:
       - name: SSH 설정
