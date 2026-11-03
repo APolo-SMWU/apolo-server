@@ -286,7 +286,35 @@ const swaggerSpec = {
       get: { tags: ["Online Card"], security: [{ bearerAuth: [] }], responses: { 200: { description: "내 온라인 명함 목록", content: { "application/json": { schema: { type: "object", properties: { portfolios: { type: "array", items: { $ref: "#/components/schemas/Portfolio" } } } } } } } } },
     },
     "/portfolios/generate": {
-      post: { tags: ["Online Card"], security: [{ bearerAuth: [] }], requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["title", "cardDesignId", "siteDesignId", "externalLinks"], properties: { title: { type: "string" }, cardDesignId: { type: "string" }, siteDesignId: { type: "string" }, externalLinks: { type: "array", minItems: 1, items: { type: "string", format: "uri" } }, requirements: { type: "string", maxLength: 2000 } } } }, "multipart/form-data": { schema: { type: "object", required: ["title", "cardDesignId", "siteDesignId", "externalLinks"], properties: { title: { type: "string" }, cardDesignId: { type: "string" }, siteDesignId: { type: "string" }, externalLinks: { type: "string", description: "JSON 배열 문자열" }, requirements: { type: "string", maxLength: 2000 }, attachments: { type: "array", items: { type: "string", format: "binary" }, maxItems: 5 } } } } } }, responses: { 201: { description: "생성 성공", content: { "application/json": { schema: { $ref: "#/components/schemas/Portfolio" } } } }, 422: { description: "사용자 프로필 미완성 또는 첨부파일 오류" } } },
+      post: {
+        tags: ["Online Card"], security: [{ bearerAuth: [] }],
+        description: "링크 또는 PDF·DOCX로 콘텐츠를 생성한다. PDF·DOCX는 AI에 반영하고 JPG·PNG는 첨부로 저장한다. 최대 5개, 파일당 10MB. 스캔 PDF의 OCR은 지원하지 않는다.",
+        requestBody: { required: true, content: {
+          "application/json": { schema: {
+            type: "object", required: ["title", "cardDesignId", "siteDesignId", "externalLinks"],
+            properties: {
+              title: { type: "string" }, cardDesignId: { type: "string" }, siteDesignId: { type: "string" },
+              externalLinks: { type: "array", minItems: 1, items: { type: "string", format: "uri" } },
+              requirements: { type: "string", maxLength: 2000 },
+            },
+          } },
+          "multipart/form-data": { schema: {
+            type: "object", required: ["title", "cardDesignId", "siteDesignId"],
+            properties: {
+              title: { type: "string" }, cardDesignId: { type: "string" }, siteDesignId: { type: "string" },
+              externalLinks: { type: "string", description: "JSON 배열 문자열. PDF·DOCX 첨부 시 생략하거나 []로 보낼 수 있다." },
+              requirements: { type: "string", maxLength: 2000 },
+              attachments: { type: "array", maxItems: 5, items: { type: "string", format: "binary" }, description: "PDF, DOCX, JPG, PNG" },
+            },
+          } },
+        } },
+        responses: {
+          201: { description: "생성 성공", content: { "application/json": { schema: { $ref: "#/components/schemas/Portfolio" } } } },
+          400: { description: "입력값 오류 또는 링크·문서 없음" },
+          422: { description: "사용자 프로필 미완성 또는 첨부파일 종류·개수·크기 오류" },
+          502: { description: "AI 또는 첨부 저장 실패" },
+        },
+      },
     },
     "/portfolios/{portfolioId}": {
       get: { tags: ["Online Card"], security: [{ bearerAuth: [] }], parameters: [{ $ref: "#/components/parameters/portfolioId" }], responses: { 200: { description: "상세 조회" }, 404: { description: "없음" } } },

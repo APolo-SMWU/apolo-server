@@ -401,7 +401,7 @@ export const createPortfolioSchema = z
     title: requiredString("제목", 100),
     cardDesignId: requiredString("명함 디자인 ID", 100),
     siteDesignId: requiredString("사이트 디자인 ID", 100),
-    externalLinks: z.array(httpUrlSchema).min(1, "외부 링크를 하나 이상 입력해주세요."),
+    externalLinks: z.array(httpUrlSchema).default([]),
     requirements: requiredString("요구사항", 2_000).optional(),
   })
   .strict();

@@ -20,8 +20,11 @@ export const portfolioGenerationUpload = (req: Request, res: Response, next: Nex
     if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
       return next(new AppError(422, "첨부파일은 파일당 10MB 이하만 업로드할 수 있습니다.", "ATTACHMENT_TOO_LARGE"));
     }
-    if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_COUNT") {
+    if (error instanceof multer.MulterError && (error.code === "LIMIT_FILE_COUNT" || (error.code === "LIMIT_UNEXPECTED_FILE" && error.field === "attachments"))) {
       return next(new AppError(422, "첨부파일은 한 번에 5개 이하만 업로드할 수 있습니다.", "TOO_MANY_ATTACHMENTS"));
+    }
+    if (error instanceof multer.MulterError && error.code === "LIMIT_UNEXPECTED_FILE") {
+      return next(new AppError(400, "첨부파일은 attachments 필드로 보내주세요.", "INVALID_ATTACHMENT_FIELD"));
     }
     if (error) return next(error);
     return next();

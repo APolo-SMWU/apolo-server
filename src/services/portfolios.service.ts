@@ -35,8 +35,10 @@ import { mapUserProfileToPortfolioProfile } from "./portfolio-profile";
 import {
   createPortfolioAttachmentKey,
   validatePortfolioAttachment,
+  toAiAttachments,
+  isDocumentAttachment,
 } from "./portfolio-attachment";
-import { deletePrivateObject, putPrivateObject } from "./s3.service";
+import { createPrivateObjectUrl, deletePrivateObject, putPrivateObject } from "./s3.service";
 import {
   materializeWorkImages,
   preserveStoredWorkImageKeys,
@@ -70,6 +72,11 @@ interface PortfolioServiceDependencies {
   ai: OnlineCardAiProvider;
   createId: IdFactory;
   logoLookup: (organizationName: string) => Promise<string | null>;
+  storage: {
+    putObject: typeof putPrivateObject;
+    deleteObject: typeof deletePrivateObject;
+    signUrl: typeof createPrivateObjectUrl;
+  };
 }
 
 const ownershipError = () =>
@@ -85,6 +92,11 @@ export const createPortfolioService = (
   const ai = overrides.ai ?? onlineCardAiService;
   const createId = overrides.createId ?? randomUUID;
   const logoLookup = overrides.logoLookup ?? lookupOrganizationLogo;
+  const storage = overrides.storage ?? {
+    putObject: putPrivateObject,
+    deleteObject: deletePrivateObject,
+    signUrl: createPrivateObjectUrl,
+  };
 
   type OwnedOnlineCardOptions = { backfill?: boolean };
 
@@ -126,6 +138,9 @@ export const createPortfolioService = (
     attachments: PortfolioGenerationAttachment[] = [],
   ): Promise<Portfolio> => {
     attachments.forEach((file) => validatePortfolioAttachment(file, attachments.length));
+    if (!input.externalLinks.length && !attachments.some((file) => isDocumentAttachment(file.mimetype))) {
+      throw new AppError(400, "외부 링크 또는 PDF·Word 문서를 하나 이상 추가해주세요.", "SOURCE_REQUIRED");
+    }
     const user = await db.user.findUnique({
       where: { id: userId },
       select: {
@@ -152,36 +167,49 @@ export const createPortfolioService = (
     const userType = mapUserType(user.role);
     const { card, profile } = buildInitialPortfolioProfile(user);
 
-    const generationRequest = toGenerateRequest(user, { ...input, externalLinks: sourceLinks });
-    const organizationName = organizationNameOf(user);
-    const [aiResult, logoUrl] = await Promise.all([
-      ai.generate(generationRequest),
-      organizationName ? logoLookup(organizationName) : null,
-    ]);
-    const generated = normalizeGeneratedResponse(aiResult, createId);
-
-    const portfolio = await db.portfolio.create({
-      data: {
-        userId,
-        title: input.title,
-        userType,
-        cardDesignId: input.cardDesignId,
-        siteDesignId: input.siteDesignId,
-        requirements: input.requirements ?? null,
-        card: asJson({ ...card, logoUrl }),
-        profile: asJson(profile),
-        blocks: asJson(generated.blocks),
-        aiMeta: asJson(generated.meta),
-        aiWarnings: asJson(generated.warnings),
-        sourceLinks: asJson(sourceLinks),
-        sourceSnapshots: asJson([]),
-        schemaVersion: PORTFOLIO_SCHEMA_VERSION,
-        status: "draft",
-      },
-    });
-
     const uploadedKeys: string[] = [];
+    let portfolio: Portfolio | undefined;
     try {
+      // 포트폴리오 생성 전에도 원본을 참조할 수 있도록 요청별 UUID 저장 경로를 사용한다.
+      const attachmentRef = attachments.length ? createId() : "";
+      const attachmentData = [];
+      for (const file of attachments) {
+        const key = createPortfolioAttachmentKey(attachmentRef, file.mimetype);
+        await storage.putObject({ key, body: file.buffer, contentType: file.mimetype });
+        uploadedKeys.push(key);
+        attachmentData.push({
+          s3Key: key, originalName: file.originalname, mimeType: file.mimetype, size: file.size,
+        });
+      }
+      const aiAttachments = await toAiAttachments(attachmentData, storage.signUrl);
+      const generationRequest = toGenerateRequest(
+        user, { ...input, externalLinks: sourceLinks }, aiAttachments,
+      );
+      const organizationName = organizationNameOf(user);
+      const [aiResult, logoUrl] = await Promise.all([
+        ai.generate(generationRequest),
+        organizationName ? logoLookup(organizationName) : null,
+      ]);
+      const generated = normalizeGeneratedResponse(aiResult, createId);
+      portfolio = await db.portfolio.create({
+        data: {
+          userId,
+          title: input.title,
+          userType,
+          cardDesignId: input.cardDesignId,
+          siteDesignId: input.siteDesignId,
+          requirements: input.requirements ?? null,
+          card: asJson({ ...card, logoUrl }),
+          profile: asJson(profile),
+          blocks: asJson(generated.blocks),
+          aiMeta: asJson(generated.meta),
+          aiWarnings: asJson(generated.warnings),
+          sourceLinks: asJson(sourceLinks),
+          sourceSnapshots: asJson([]),
+          schemaVersion: PORTFOLIO_SCHEMA_VERSION,
+          status: "draft",
+        },
+      });
       const materialized = await materializeWorkImages(generated.blocks, portfolio.id, { createId });
       uploadedKeys.push(...materialized.uploadedKeys);
       await db.portfolio.update({
@@ -189,25 +217,14 @@ export const createPortfolioService = (
         data: { blocks: asJson(materialized.blocks) },
       });
 
-      const attachmentData = [];
-      for (const file of attachments) {
-        const key = createPortfolioAttachmentKey(portfolio.id, file.mimetype);
-        await putPrivateObject({ key, body: file.buffer, contentType: file.mimetype });
-        uploadedKeys.push(key);
-        attachmentData.push({
-          portfolioId: portfolio.id,
-          s3Key: key,
-          originalName: file.originalname,
-          mimeType: file.mimetype,
-          size: file.size,
+      if (attachmentData.length > 0) {
+        const portfolioId = portfolio.id;
+        await db.portfolioAttachment.createMany({
+          data: attachmentData.map((file) => ({ ...file, portfolioId })),
         });
       }
 
-      if (attachmentData.length > 0) {
-        await db.portfolioAttachment.createMany({ data: attachmentData });
-      }
-
-      return db.portfolio.findUniqueOrThrow({
+      return await db.portfolio.findUniqueOrThrow({
         where: { id: portfolio.id },
         include: {
           attachments: {
@@ -216,10 +233,10 @@ export const createPortfolioService = (
         },
       });
     } catch (error) {
-      await Promise.all(uploadedKeys.map((key) => deletePrivateObject(key).catch(() => undefined)));
-      await db.portfolio.delete({ where: { id: portfolio.id } }).catch(() => undefined);
+      await Promise.all(uploadedKeys.map((key) => storage.deleteObject(key).catch(() => undefined)));
+      if (portfolio) await db.portfolio.delete({ where: { id: portfolio.id } }).catch(() => undefined);
       if (error instanceof AppError) throw error;
-      throw new AppError(502, "첨부파일을 저장하지 못했습니다.", "ATTACHMENT_STORAGE_FAILED");
+      throw new AppError(502, "첨부파일 또는 온라인 명함 생성에 실패했습니다.", "PORTFOLIO_GENERATION_FAILED");
     }
   };
 
@@ -308,10 +325,12 @@ export const createPortfolioService = (
   ): Promise<Portfolio> => {
     const existing = await getOwnedOnlineCard(userId, portfolioId, { backfill: false });
     const sourceLinks = normalizeSourceLinks(existing.sourceLinks);
+    const storedAttachments = await db.portfolioAttachment.findMany({ where: { portfolioId } });
     const updated = await ai.updateContent({
       userId,
       sourceLinks,
       requirements: existing.requirements ?? "",
+      attachments: await toAiAttachments(storedAttachments, storage.signUrl),
     });
     const normalized = normalizeGeneratedResponse(updated, createId);
     const blocks = mergeRefreshedBlocks(existing.blocks, normalized.blocks, createId);

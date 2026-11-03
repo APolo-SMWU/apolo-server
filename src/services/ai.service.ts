@@ -1,6 +1,7 @@
 import { generateCvViaHttp, generateViaHttp, updateContentViaHttp } from "./ai-http.service";
 import type { CvSection } from "../types/cv";
 import type { GenerateRequest } from "./ai-generate.mapper";
+import type { AiSourceAttachment } from "./portfolio-attachment";
 
 export interface OnlineCardUserProfile {
   id: number;
@@ -21,6 +22,7 @@ export interface UpdateContentRequest {
   userId: number;
   sourceLinks: string[];
   requirements?: string;
+  attachments?: AiSourceAttachment[];
 }
 
 export interface CvGenerateRequest {
